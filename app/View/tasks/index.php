@@ -273,10 +273,10 @@
                                 </div>
                             </div>
                         <?php endif; ?>
-                        <!-- Assignee and due date line -->
+                        <!-- Assignees and due date line -->
                         <div style="margin-top:0.25rem; font-size:0.7rem; color:var(--muted);">
-                            <?php if (!empty($task['assignee'])): ?>
-                                <span>👤 <?php echo e($task['assignee']); ?></span>
+                            <?php if (!empty($task['assignees'])): ?>
+                                <span>👤 <?php echo e($task['assignees']); ?></span>
                             <?php endif; ?>
                             <?php if (!empty($task['due_date'])): ?>
                                 <span style="margin-left:0.5rem;">📅 <?php echo e($task['due_date']); ?></span>
@@ -329,10 +329,10 @@
                                                 </span>
                                             <?php endforeach; ?>
                                         <?php endif; ?>
-                                        <?php if (!empty($sub['assignee']) || !empty($sub['due_date'])): ?>
+                                        <?php if (!empty($sub['assignees']) || !empty($sub['due_date'])): ?>
                                             <div style="font-size:0.55rem; color:var(--muted); margin-top:0.2rem;">
-                                                <?php if (!empty($sub['assignee'])): ?>
-                                                    <span>👤 <?php echo e($sub['assignee']); ?></span>
+                                                <?php if (!empty($sub['assignees'])): ?>
+                                                    <span>👤 <?php echo e($sub['assignees']); ?></span>
                                                 <?php endif; ?>
                                                 <?php if (!empty($sub['due_date'])): ?>
                                                     <span style="margin-left:0.3rem;">📅 <?php echo e($sub['due_date']); ?></span>
@@ -472,7 +472,8 @@
                                         $key = $t['status'];
                                         break;
                                     case 'assignee':
-                                        $key = $t['assignee'] ?: __('unassigned');
+                                        // Use aggregated assignees for grouping; fallback to 'unassigned' if empty
+                                        $key = !empty($t['assignees']) ? $t['assignees'] : __('unassigned');
                                         break;
                                     case 'priority':
                                         $key = $t['priority'] ?? 'normal';

@@ -18,15 +18,19 @@ class Task extends Model
      */
     public function getByProject(int $projectId): array
     {
-        // Fetch all tasks for the project along with assignee name and attachment/comment counts.
-        // Exclude tasks marked as deleted. We order by sort_order so that tasks
-        // appear in the same order within their status columns as stored.
+        // Fetch all tasks for the given project. We join the task_user pivot table
+        // to support multiple assignees, aggregating assignee names into a
+        // comma‑separated string. We also join files and comments to count
+        // attachments and comments per task. Exclude tasks marked as deleted.
         $stmt = $this->query(
-            "SELECT t.*, u.full_name AS assignee, " .
+            "SELECT t.*, " .
+            "GROUP_CONCAT(DISTINCT u.full_name ORDER BY u.full_name SEPARATOR ', ') AS assignees, " .
+            "GROUP_CONCAT(DISTINCT tu.user_id ORDER BY tu.user_id SEPARATOR ',') AS assignee_ids, " .
             "COUNT(DISTINCT f.id) AS attachment_count, " .
             "COUNT(DISTINCT c.id) AS comment_count " .
             "FROM tasks t " .
-            "LEFT JOIN users u ON t.assigned_to = u.id " .
+            "LEFT JOIN task_user tu ON tu.task_id = t.id " .
+            "LEFT JOIN users u ON tu.user_id = u.id " .
             "LEFT JOIN files f ON f.task_id = t.id " .
             "LEFT JOIN comments c ON c.task_id = t.id " .
             "WHERE t.project_id = :project_id AND t.status <> 'deleted' " .
@@ -40,6 +44,12 @@ class Task extends Model
             $row['subtasks'] = [];
             $row['subtask_total'] = 0;
             $row['subtask_done'] = 0;
+            // Convert comma‑separated assignee IDs to array
+            if (isset($row['assignee_ids']) && $row['assignee_ids'] !== null && $row['assignee_ids'] !== '') {
+                $row['assignee_ids'] = array_map('intval', explode(',', $row['assignee_ids']));
+            } else {
+                $row['assignee_ids'] = [];
+            }
             $tasks[$row['id']] = $row;
         }
         // Assign each task to its parent if parent_id is set. We compute subtasks
@@ -73,9 +83,29 @@ class Task extends Model
      */
     public function findById(int $id): ?array
     {
-        $stmt = $this->query("SELECT t.*, u.full_name AS assignee FROM tasks t LEFT JOIN users u ON t.assigned_to = u.id WHERE t.id = :id", ['id' => $id]);
+        // Retrieve a single task. We join the task_user pivot table so we can
+        // aggregate assignee names and also fetch the list of assigned user IDs.
+        $stmt = $this->query(
+            "SELECT t.*, " .
+            "GROUP_CONCAT(DISTINCT u.full_name ORDER BY u.full_name SEPARATOR ', ') AS assignees, " .
+            "GROUP_CONCAT(DISTINCT tu.user_id ORDER BY tu.user_id SEPARATOR ',') AS assignee_ids " .
+            "FROM tasks t " .
+            "LEFT JOIN task_user tu ON tu.task_id = t.id " .
+            "LEFT JOIN users u ON tu.user_id = u.id " .
+            "WHERE t.id = :id GROUP BY t.id",
+            ['id' => $id]
+        );
         $task = $stmt->fetch();
-        return $task ?: null;
+        if (!$task) {
+            return null;
+        }
+        // Convert assignee_ids string to array for easier use in views/controllers.
+        if (!empty($task['assignee_ids'])) {
+            $task['assignee_ids'] = array_map('intval', explode(',', $task['assignee_ids']));
+        } else {
+            $task['assignee_ids'] = [];
+        }
+        return $task;
     }
 
     /**
@@ -88,7 +118,19 @@ class Task extends Model
      */
     public function getAllWithUsers(): array
     {
-        $stmt = $this->query("SELECT t.*, u.full_name AS assignee FROM tasks t LEFT JOIN users u ON t.assigned_to = u.id WHERE t.status <> 'deleted'", []);
+        // Retrieve all tasks across projects with aggregated assignee names. We exclude
+        // deleted tasks. Using GROUP_CONCAT allows tasks to have multiple
+        // assignees displayed as a comma separated list.
+        $stmt = $this->query(
+            "SELECT t.*, " .
+            "GROUP_CONCAT(DISTINCT u.full_name ORDER BY u.full_name SEPARATOR ', ') AS assignees " .
+            "FROM tasks t " .
+            "LEFT JOIN task_user tu ON tu.task_id = t.id " .
+            "LEFT JOIN users u ON tu.user_id = u.id " .
+            "WHERE t.status <> 'deleted' " .
+            "GROUP BY t.id",
+            []
+        );
         return $stmt->fetchAll();
     }
 
@@ -324,6 +366,32 @@ class Task extends Model
     }
 
     /**
+     * Set assignees for a task. This clears any existing assignments and
+     * inserts new ones into the task_user pivot table. It is up to the
+     * controller to ensure the first assignee (if any) is stored in the
+     * tasks.assigned_to column for backwards compatibility.
+     *
+     * @param int   $taskId     The ID of the task
+     * @param array $assignees  An array of user IDs to assign
+     */
+    public function setAssignees(int $taskId, array $assignees): void
+    {
+        // Remove any existing assignments
+        $this->query("DELETE FROM task_user WHERE task_id = :tid", ['tid' => $taskId]);
+        // Insert new assignments
+        foreach ($assignees as $uid) {
+            // Only insert numeric IDs
+            $uid = (int)$uid;
+            if ($uid > 0) {
+                $this->query("INSERT INTO task_user (task_id, user_id) VALUES (:tid, :uid)", [
+                    'tid' => $taskId,
+                    'uid' => $uid,
+                ]);
+            }
+        }
+    }
+
+    /**
      * Retrieve a list of all unique tags across tasks along with counts.
      *
      * @return array Array of ['tag' => string, 'count' => int]
@@ -438,13 +506,27 @@ class Task extends Model
     public function getSubtasks(int $parentId): array
     {
         $stmt = $this->query(
-            "SELECT t.*, u.full_name AS assignee, COUNT(f.id) AS attachment_count FROM tasks t " .
-            "LEFT JOIN users u ON t.assigned_to = u.id " .
+            "SELECT t.*, " .
+            "GROUP_CONCAT(DISTINCT u.full_name ORDER BY u.full_name SEPARATOR ', ') AS assignees, " .
+            "GROUP_CONCAT(DISTINCT tu.user_id ORDER BY tu.user_id SEPARATOR ',') AS assignee_ids, " .
+            "COUNT(f.id) AS attachment_count " .
+            "FROM tasks t " .
+            "LEFT JOIN task_user tu ON tu.task_id = t.id " .
+            "LEFT JOIN users u ON tu.user_id = u.id " .
             "LEFT JOIN files f ON f.task_id = t.id " .
             "WHERE t.parent_id = :pid AND t.status <> 'deleted' GROUP BY t.id ORDER BY t.sort_order ASC, t.id ASC",
             ['pid' => $parentId]
         );
-        return $stmt->fetchAll();
+        $rows = $stmt->fetchAll();
+        // Convert assignee_ids strings to arrays
+        foreach ($rows as &$row) {
+            if (!empty($row['assignee_ids'])) {
+                $row['assignee_ids'] = array_map('intval', explode(',', $row['assignee_ids']));
+            } else {
+                $row['assignee_ids'] = [];
+            }
+        }
+        return $rows;
     }
 
     /**

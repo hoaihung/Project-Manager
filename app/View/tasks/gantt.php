@@ -85,10 +85,10 @@
     $durations = [];
     $backgroundColors = [];
     foreach ($flat as $t) {
-        // Include assignee in label for clarity
+        // Include assignees in label for clarity
         $label = $t['name'];
-        if (!empty($t['assignee'])) {
-            $label .= ' (' . $t['assignee'] . ')';
+        if (!empty($t['assignees'])) {
+            $label .= ' (' . $t['assignees'] . ')';
         }
         $labels[] = addslashes($label);
         // Compute offset from earliest start to this task's start (days)
@@ -138,7 +138,7 @@
                     <th style="text-align:left; padding:0.25rem; border-bottom:1px solid var(--border);"><?php echo __('start_date_col'); ?></th>
                     <th style="text-align:left; padding:0.25rem; border-bottom:1px solid var(--border);"><?php echo __('end_date_col'); ?></th>
                     <th style="text-align:left; padding:0.25rem; border-bottom:1px solid var(--border);"><?php echo __('status'); ?></th>
-                    <th style="text-align:left; padding:0.25rem; border-bottom:1px solid var(--border);"><?php echo __('assignee'); ?></th>
+                    <th style="text-align:left; padding:0.25rem; border-bottom:1px solid var(--border);"><?php echo __('assigned_to'); ?></th>
                 </tr>
             </thead>
             <tbody>
@@ -152,7 +152,7 @@
                         <td style="padding:0.25rem; border-bottom:1px solid var(--border);"><?php echo e($t['start_date']); ?></td>
                         <td style="padding:0.25rem; border-bottom:1px solid var(--border);"><?php echo e($t['due_date']); ?></td>
                         <td style="padding:0.25rem; border-bottom:1px solid var(--border);"><?php echo e($t['status']); ?></td>
-                        <td style="padding:0.25rem; border-bottom:1px solid var(--border);"><?php echo e($t['assignee']); ?></td>
+                        <td style="padding:0.25rem; border-bottom:1px solid var(--border);"><?php echo e($t['assignees']); ?></td>
                     </tr>
                 <?php endforeach; ?>
             </tbody>

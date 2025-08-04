@@ -54,9 +54,16 @@ class TaskController extends Controller
                         return false;
                     }
                 }
-                // User filter (assigned_to)
-                if ($userFilter && (!isset($task['assigned_to']) || (int)$task['assigned_to'] !== $userFilter)) {
-                    return false;
+                // User filter (assignee). If userFilter specified, ensure the selected user is among assignee_ids
+                if ($userFilter) {
+                    $ids = $task['assignee_ids'] ?? [];
+                    // allow fallback to single assigned_to if no assignee_ids defined
+                    if (empty($ids) && isset($task['assigned_to'])) {
+                        $ids = [(int)$task['assigned_to']];
+                    }
+                    if (!in_array($userFilter, $ids)) {
+                        return false;
+                    }
                 }
                 // Priority filter
                 if ($priorityFilter !== '' && (!isset($task['priority']) || $task['priority'] !== $priorityFilter)) {
@@ -225,6 +232,20 @@ class TaskController extends Controller
             if ($dd && $sd && $dd < $sd) {
                 $dd = $sd;
             }
+            // Collect assignees (multi-select). Determine primary assigned_to as the first selected user for
+            // backwards compatibility. If no assignees selected, assigned_to remains null.
+            $assignees = isset($_POST['assignees']) && is_array($_POST['assignees']) ? array_filter($_POST['assignees']) : [];
+            $primaryAssignee = null;
+            if (!empty($assignees)) {
+                // Ensure numeric values and pick the first one
+                $clean = array_values(array_filter(array_map('intval', $assignees), function ($v) { return $v > 0; }));
+                if (!empty($clean)) {
+                    $primaryAssignee = $clean[0];
+                    $assignees = $clean;
+                } else {
+                    $assignees = [];
+                }
+            }
             $data = [
                 'project_id' => $projectId,
                 'name' => $_POST['name'],
@@ -232,7 +253,7 @@ class TaskController extends Controller
                 'status' => $_POST['status'] ?? 'todo',
                 'start_date' => $sd,
                 'due_date' => $dd,
-                'assigned_to' => !empty($_POST['assigned_to']) ? $_POST['assigned_to'] : null,
+                'assigned_to' => $primaryAssignee,
                 'parent_id' => (function() use ($taskModel, $projectId) {
                     if (empty($_POST['parent_id'])) return null;
                     $pid = (int)$_POST['parent_id'];
@@ -246,6 +267,10 @@ class TaskController extends Controller
                 'tags' => !empty($_POST['tags']) ? $_POST['tags'] : null,
             ];
             $newId = $taskModel->create($data);
+            // Persist multi assignee relationships
+            if (!empty($assignees)) {
+                $taskModel->setAssignees($newId, $assignees);
+            }
             // Handle file attachments if any
             if (!empty($_FILES['attachments']['name'][0])) {
                 $fileModel = $this->loadModel('File');
@@ -279,11 +304,22 @@ class TaskController extends Controller
             // After creation, redirect to edit page of the new task so attachments and comments can be added
             redirect('index.php?controller=task&action=edit&id=' . $newId);
         }
+        // Build parent options for selecting a parent task (top‑level tasks only)
+        $parentOptions = [];
+        $projTasks = $taskModel->getByProject($projectId);
+        foreach ($projTasks as $st => $items) {
+            foreach ($items as $t) {
+                if (empty($t['parent_id'])) {
+                    $parentOptions[] = $t;
+                }
+            }
+        }
         $this->render('tasks/create', [
             'project_id' => $projectId,
             'users' => $users,
             'parent_id' => $parentTaskId,
             'statusParam' => $statusParam,
+            'parentOptions' => $parentOptions,
         ]);
     }
 
@@ -299,6 +335,8 @@ class TaskController extends Controller
         if (!$task) {
             redirect('index.php');
         }
+        // Extract assigned user IDs for prechecking checkboxes in the view. findById() now populates assignee_ids.
+        $assignedUserIds = $task['assignee_ids'] ?? [];
         $projectId = $task['project_id'];
         // Permission check: ensure user can access project and edit tasks
         if (!user_can('access_project', $projectId) || !user_can('edit_task')) {
@@ -341,13 +379,25 @@ class TaskController extends Controller
             if ($dd && $sd && $dd < $sd) {
                 $dd = $sd;
             }
+            // Collect multi assignees and determine primary
+            $assignees = isset($_POST['assignees']) && is_array($_POST['assignees']) ? array_filter($_POST['assignees']) : [];
+            $primaryAssignee = null;
+            if (!empty($assignees)) {
+                $clean = array_values(array_filter(array_map('intval', $assignees), function ($v) { return $v > 0; }));
+                if (!empty($clean)) {
+                    $primaryAssignee = $clean[0];
+                    $assignees = $clean;
+                } else {
+                    $assignees = [];
+                }
+            }
             $data = [
                 'name' => $_POST['name'],
                 'description' => $_POST['description'] ?? '',
                 'status' => $_POST['status'],
                 'start_date' => $sd,
                 'due_date' => $dd,
-                'assigned_to' => !empty($_POST['assigned_to']) ? $_POST['assigned_to'] : null,
+                'assigned_to' => $primaryAssignee,
                 // Only allow changing parent_id if the task currently has no subtasks
                 'parent_id' => (function() use ($taskModel, $projectId, $taskId, $hasSubtasks) {
                     // If there are subtasks, disallow becoming a subtask
@@ -369,6 +419,8 @@ class TaskController extends Controller
                 'tags' => !empty($_POST['tags']) ? $_POST['tags'] : null,
             ];
             $taskModel->update($taskId, $data);
+            // Update pivot assignments
+            $taskModel->setAssignees($taskId, $assignees);
             // Handle new file attachments
             if (!empty($_FILES['attachments']['name'][0])) {
                 $fileModel = $this->loadModel('File');
@@ -407,6 +459,7 @@ class TaskController extends Controller
             'parentOptions' => $tasksForSelect,
             'subtasks' => $subtasks,
             'hasSubtasks' => $hasSubtasks,
+            'assignedUserIds' => $assignedUserIds,
         ]);
     }
 

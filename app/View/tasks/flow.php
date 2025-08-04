@@ -62,16 +62,17 @@
     foreach ($tasks as $status => $items) {
         foreach ($items as $task) {
             $label = $task['name'];
-            if (!empty($task['assignee'])) {
-                $label .= ' (' . $task['assignee'] . ')';
+            // Append assignees to the label if present
+            if (!empty($task['assignees'])) {
+                $label .= ' (' . $task['assignees'] . ')';
             }
             $idToName[$task['id']] = $label;
             $all[$task['id']] = $task;
             if (!empty($task['subtasks'])) {
                 foreach ($task['subtasks'] as $sub) {
                     $slabel = $sub['name'];
-                    if (!empty($sub['assignee'])) {
-                        $slabel .= ' (' . $sub['assignee'] . ')';
+                    if (!empty($sub['assignees'])) {
+                        $slabel .= ' (' . $sub['assignees'] . ')';
                     }
                     $idToName[$sub['id']] = $slabel;
                     $all[$sub['id']] = $sub;

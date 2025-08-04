@@ -52,13 +52,17 @@
         <!-- Assignee & parent -->
         <div class="row mb-3">
             <div class="col-md-6 mb-2">
-                <label for="assigned_to" class="form-label"><?php echo e(__('assigned_to')); ?></label>
-                <select name="assigned_to" id="assigned_to" class="form-select">
-                    <option value="">-- None --</option>
+                <label class="form-label"><?php echo e(__('assigned_to')); ?></label>
+                <div class="border rounded p-2" style="max-height:150px; overflow-y:auto;">
                     <?php foreach ($users as $user): ?>
-                        <option value="<?php echo e($user['id']); ?>"><?php echo e($user['full_name']); ?></option>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="assignees[]" id="assign_<?php echo e($user['id']); ?>" value="<?php echo e($user['id']); ?>">
+                            <label class="form-check-label" for="assign_<?php echo e($user['id']); ?>">
+                                <?php echo e($user['full_name']); ?>
+                            </label>
+                        </div>
                     <?php endforeach; ?>
-                </select>
+                </div>
             </div>
             <div class="col-md-6 mb-2">
                 <?php if ($parent_id): ?>

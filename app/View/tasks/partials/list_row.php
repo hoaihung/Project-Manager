@@ -37,9 +37,9 @@
                 <span title="<?php echo e(__('subtasks')); ?>" style="margin-right:0.15rem;"><i class="fa-solid fa-layer-group"></i> <?php echo e($task['subtask_done']); ?>/<?php echo e($task['subtask_total']); ?></span>
             <?php endif; ?>
         </div>
-        <?php if (!empty($task['assignee'])): ?>
+        <?php if (!empty($task['assignees'])): ?>
             <div style="font-size:0.65rem; color:var(--muted); margin-top:0.1rem;">
-                👤 <?php echo e($task['assignee']); ?>
+                👤 <?php echo e($task['assignees']); ?>
             </div>
         <?php endif; ?>
     </td>

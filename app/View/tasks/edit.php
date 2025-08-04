@@ -61,13 +61,18 @@
                 <!-- Group: assignee & parent -->
                 <div class="row">
                     <div class="col-md-6 form-group">
-                        <label for="assigned_to"><?php echo e(__('assigned_to')); ?></label>
-                        <select name="assigned_to" id="assigned_to" class="form-select">
-                            <option value="">-- None --</option>
+                        <label class="form-label"><?php echo e(__('assigned_to')); ?></label>
+                        <div class="border rounded p-2" style="max-height:150px; overflow-y:auto;">
                             <?php foreach ($users as $user): ?>
-                                <option value="<?php echo e($user['id']); ?>" <?php echo $task['assigned_to'] == $user['id'] ? 'selected' : ''; ?>><?php echo e($user['full_name']); ?></option>
+                                <?php $checked = in_array($user['id'], $assignedUserIds ?? []) ? 'checked' : ''; ?>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="assignees[]" id="assign_<?php echo e($user['id']); ?>" value="<?php echo e($user['id']); ?>" <?php echo $checked; ?>>
+                                    <label class="form-check-label" for="assign_<?php echo e($user['id']); ?>">
+                                        <?php echo e($user['full_name']); ?>
+                                    </label>
+                                </div>
                             <?php endforeach; ?>
-                        </select>
+                        </div>
                     </div>
                     <div class="col-md-6 form-group">
                         <label for="parent_id"><?php echo __('subtask_of'); ?></label>
