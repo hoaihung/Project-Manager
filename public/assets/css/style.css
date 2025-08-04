@@ -1,0 +1,358 @@
+/*
+ * Custom styles for the project manager application. This stylesheet
+ * defines a modern, bright look and feel without depending on external
+ * frameworks. It leverages CSS variables for easy theming and uses
+ * flexbox to create responsive layouts. Feel free to tweak the
+ * variables or add new classes to customise the UI.
+ */
+
+/* Colour palette */
+:root {
+    --primary: #4f46e5;        /* Indigo */
+    --primary-hover: #4338ca;
+    --secondary: #10b981;      /* Emerald */
+    --secondary-hover: #059669;
+    --background: #f9fafb;     /* Gray-50 */
+    --surface: #ffffff;        /* White */
+    --border: #e5e7eb;         /* Gray-200 */
+    --text: #1f2937;           /* Gray-800 */
+    --muted: #6b7280;          /* Gray-500 */
+    --danger: #ef4444;         /* Red-500 */
+
+    /* Status colours (pastel tones). These colours should match the
+       design guidelines: todo – grey, in progress – blue, bug/review – pink,
+       done – green. Overdue and due soon are deeper pastel shades. */
+    --status-todo: #f3f4f6;        /* grey pastel for To Do */
+    --status-in-progress: #dbeafe; /* blue pastel for In Progress */
+    --status-bug-review: #fdf2f8;  /* pink pastel for Bug/Review */
+    --status-done: #ecfdf5;        /* green pastel for Done */
+    /* Overdue and due soon colours are slightly deeper pastel tones */
+    --status-overdue: #fee2e2;     /* soft red for overdue */
+    --status-due-soon: #fef9c3;    /* soft yellow for due soon */
+}
+
+/* Global styles */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background-color: var(--background);
+    color: var(--text);
+    line-height: 1.6;
+}
+
+a {
+    color: var(--primary);
+    text-decoration: none;
+}
+a:hover {
+    color: var(--primary-hover);
+}
+
+/* Navbar */
+.navbar {
+    background-color: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0.75rem 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+.nav-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 1rem;
+}
+.brand {
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: var(--primary);
+}
+.nav-right a {
+    margin-left: 1.25rem;
+    font-weight: 500;
+    position: relative;
+    padding-bottom: 0.25rem;
+    transition: color 0.2s;
+}
+.nav-right a:hover {
+    color: var(--primary-hover);
+}
+
+/* Active nav item underline: parent can add class .active to highlight */
+.nav-right a.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background-color: var(--primary);
+    border-radius: 1px;
+}
+
+/* Main container */
+.main-container {
+    max-width: 1200px;
+    margin: 1.5rem auto;
+    padding: 0 1rem;
+}
+
+/* Cards */
+.card {
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+/* Forms */
+form .form-group {
+    margin-bottom: 1rem;
+}
+form label {
+    display: block;
+    margin-bottom: 0.25rem;
+    color: var(--muted);
+    font-size: 0.875rem;
+}
+form input[type="text"],
+form input[type="date"],
+form input[type="password"],
+form select,
+form textarea {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+    font-size: 1rem;
+}
+form button {
+    background-color: var(--primary);
+    color: #fff;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    font-size: 1rem;
+}
+form button:hover {
+    background-color: var(--primary-hover);
+}
+
+/* Table */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1rem;
+}
+table thead {
+    background-color: var(--surface);
+}
+table th, table td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.875rem;
+}
+table th {
+    color: var(--muted);
+    font-weight: 600;
+}
+table tbody tr:hover {
+    background-color: var(--background);
+}
+
+/* Sidebar styles */
+.sidebar {
+    /* styles defined inline in header; this class left for future overrides */
+}
+.sidebar a {
+    color: var(--text);
+    text-decoration: none;
+    display:block;
+    padding: 0.4rem 0.75rem;
+    border-radius: 0.375rem;
+    font-size: 0.85rem;
+}
+.sidebar a:hover {
+    background-color: var(--background);
+    color: var(--primary);
+}
+
+/* Collapsed sidebar: hide sidebar for better UX on small screens */
+.sidebar.collapsed {
+    width: 0 !important;
+    padding: 0 !important;
+    overflow: hidden;
+    border: none !important;
+    transition: width 0.3s ease;
+}
+
+/* Toast notification for Kanban updates */
+.toast-notif {
+    position: fixed;
+    bottom: 1rem;
+    right: 1rem;
+    background-color: var(--secondary);
+    color: #fff;
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    z-index: 1000;
+    pointer-events: none;
+}
+
+/* Draggable subtask styling */
+.subtask-sort-item {
+    cursor: grab;
+}
+.subtask-sort-item.dragging {
+    cursor: grabbing;
+}
+
+/* When hovering over subtask name link, show pointer */
+.subtask-sort-item a:hover {
+    text-decoration: underline;
+    cursor: pointer;
+}
+.toast-notif.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Buttons */
+.btn {
+    display: inline-block;
+    padding: 0.4rem 0.75rem;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    cursor: pointer;
+    margin-right: 0.5rem;
+}
+.btn-primary {
+    background-color: var(--primary);
+    color: #fff;
+}
+.btn-primary:hover {
+    background-color: var(--primary-hover);
+}
+.btn-danger {
+    background-color: var(--danger);
+    color: #fff;
+}
+.btn-danger:hover {
+    background-color: #b91c1c;
+}
+.btn-secondary {
+    background-color: var(--secondary);
+    color: #fff;
+}
+.btn-secondary:hover {
+    background-color: var(--secondary-hover);
+}
+
+/* Kanban board */
+.kanban-board {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    overflow-x: auto;
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+    /* subtle border around board */
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+    background-color: var(--surface);
+}
+.kanban-column {
+    flex: 1 1 0;
+    min-width: 250px;
+    /* Column background colours are set inline based on status. Remove default background */
+    border-radius: 0.375rem;
+    display: flex;
+    flex-direction: column;
+    max-height: 70vh;
+}
+.kanban-column h4 {
+    padding: 0.5rem;
+    text-align: center;
+    background-color: var(--background);
+    border-bottom: 1px solid var(--border);
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+}
+.kanban-items {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 0.5rem;
+}
+.kanban-item {
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+    margin-bottom: 0.5rem;
+    padding: 0.5rem;
+    cursor: grab;
+}
+.kanban-item.dragging {
+    opacity: 0.5;
+}
+
+/* Priority label colours */
+.priority-low {
+    background-color: #d1fae5; /* light green */
+    color: #065f46;
+}
+.priority-normal {
+    background-color: #e0e7ff; /* light indigo */
+    color: #3730a3;
+}
+.priority-high {
+    background-color: #fee2e2; /* light red */
+    color: #991b1b;
+}
+
+/* Urgent priority: very high urgency (red flag) */
+.priority-urgent {
+    background-color: #fca5a5; /* lighter red */
+    color: #7f1d1d;
+}
+
+/* Normal priority styling (blue) */
+.priority-normal {
+    background-color: #dbeafe; /* light blue */
+    color: #1e3a8a;
+}
+
+/* Low priority styling (gray) */
+.priority-low {
+    background-color: #f3f4f6; /* light grey */
+    color: #374151;
+}
+
+/* Subtask styling */
+.subtask-item {
+    cursor: default;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .nav-right a {
+        margin-left: 0.5rem;
+        font-size: 0.875rem;
+    }
+    .kanban-column {
+        min-width: 200px;
+    }
+}
