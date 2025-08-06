@@ -25,8 +25,7 @@ class ProfileController extends Controller
         $commentModel = $this->loadModel('Comment');
 
         $user = $userModel->findById($userId);
-        // Tasks assigned to user (including parent and subtasks)
-        // Use model method to retrieve tasks assigned to this user
+        // Tasks assigned to user (including parent and subtasks). Use model method to retrieve tasks assigned to this user
         $myTasks = $taskModel->getTasksByAssignedUser($userId);
         // Attachments for tasks assigned to this user
         $fileModel = $this->loadModel('File');
@@ -36,10 +35,80 @@ class ProfileController extends Controller
         unset($t);
         // Comments made by user
         $comments = $commentModel->getByUser($userId);
+        // Build notifications (overdue, due soon, overlapping tasks) similar to notifications() method
+        $notifications = [
+            'overdue' => [],
+            'due_soon' => [],
+            'overlapGroups' => [],
+        ];
+        $allTasks = $myTasks;
+        $nowTs = strtotime(date('Y-m-d'));
+        $ranges = [];
+        foreach ($allTasks as $t) {
+            $start = !empty($t['start_date']) ? strtotime($t['start_date']) : null;
+            $end   = !empty($t['due_date']) ? strtotime($t['due_date']) : null;
+            if ($end && $end < $nowTs) {
+                $notifications['overdue'][] = $t;
+            } elseif ($end && $end <= strtotime('+3 days')) {
+                $notifications['due_soon'][] = $t;
+            }
+            if ($start || $end) {
+                $s = $start ?? $end;
+                $e = $end ?? $start;
+                if ($s > $e) { $tmp = $s; $s = $e; $e = $tmp; }
+                $ranges[] = ['index' => count($ranges), 'task' => $t, 's' => $s, 'e' => $e];
+            }
+        }
+        // Build adjacency for overlap groups
+        $n = count($ranges);
+        $adj = array_fill(0, $n, []);
+        for ($i = 0; $i < $n; $i++) {
+            for ($j = $i + 1; $j < $n; $j++) {
+                if ($ranges[$i]['e'] >= $ranges[$j]['s'] && $ranges[$j]['e'] >= $ranges[$i]['s']) {
+                    $adj[$i][] = $j;
+                    $adj[$j][] = $i;
+                }
+            }
+        }
+        $visited = array_fill(0, $n, false);
+        for ($i = 0; $i < $n; $i++) {
+            if (!$visited[$i]) {
+                $stack = [$i];
+                $visited[$i] = true;
+                $componentIndices = [];
+                $compStart = $ranges[$i]['s'];
+                $compEnd   = $ranges[$i]['e'];
+                while ($stack) {
+                    $cur = array_pop($stack);
+                    $componentIndices[] = $cur;
+                    if ($ranges[$cur]['s'] > $compStart) { $compStart = $ranges[$cur]['s']; }
+                    if ($ranges[$cur]['e'] < $compEnd) { $compEnd = $ranges[$cur]['e']; }
+                    foreach ($adj[$cur] as $nbr) {
+                        if (!$visited[$nbr]) {
+                            $visited[$nbr] = true;
+                            $stack[] = $nbr;
+                        }
+                    }
+                }
+                if (count($componentIndices) > 1) {
+                    $groupTasks = [];
+                    foreach ($componentIndices as $idx) {
+                        $groupTasks[] = $ranges[$idx]['task'];
+                    }
+                    $overlapStart = date('Y-m-d', $compStart);
+                    $overlapEnd   = date('Y-m-d', $compEnd);
+                    $notifications['overlapGroups'][] = [
+                        'tasks' => $groupTasks,
+                        'range' => [$overlapStart, $overlapEnd],
+                    ];
+                }
+            }
+        }
         $this->render('profile/index', [
             'user' => $user,
             'tasks' => $myTasks,
             'comments' => $comments,
+            'notifications' => $notifications,
         ]);
     }
 

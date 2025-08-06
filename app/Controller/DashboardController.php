@@ -44,6 +44,7 @@ class DashboardController extends Controller
         }
 
         // Tasks due today and tomorrow; split into tasks assigned to current user and those not assigned to current user (others)
+        // Retrieve tasks due today and tomorrow. Only consider tasks that are in-progress or under bug review for dashboard display
         $allToday = $taskModel->getTasksDueOnDate(date('Y-m-d'));
         $allTomorrow = $taskModel->getTasksDueOnDate(date('Y-m-d', strtotime('+1 day')));
         $todayTasksMy = [];
@@ -51,7 +52,12 @@ class DashboardController extends Controller
         $tomorrowTasksMy = [];
         $tomorrowTasksOthers = [];
         $uid = $_SESSION['user_id'] ?? 0;
+        // Only include tasks that are actively being worked on (in progress or bug/review)
+        $filterStatuses = ['in_progress', 'bug_review'];
         foreach ($allToday as $t) {
+            if (!in_array($t['status'] ?? '', $filterStatuses, true)) {
+                continue;
+            }
             if (!empty($t['assigned_to']) && (int)$t['assigned_to'] === (int)$uid) {
                 $todayTasksMy[] = $t;
             } else {
@@ -59,6 +65,9 @@ class DashboardController extends Controller
             }
         }
         foreach ($allTomorrow as $t) {
+            if (!in_array($t['status'] ?? '', $filterStatuses, true)) {
+                continue;
+            }
             if (!empty($t['assigned_to']) && (int)$t['assigned_to'] === (int)$uid) {
                 $tomorrowTasksMy[] = $t;
             } else {
