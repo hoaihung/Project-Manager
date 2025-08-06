@@ -4,50 +4,48 @@
     <a href="index.php?controller=task&project_id=<?php echo e($project['id']); ?>&view=list" class="btn <?php echo $view==='list' ? 'btn-secondary' : 'btn-primary'; ?>"><?php echo __('list'); ?></a>
     <a href="index.php?controller=task&project_id=<?php echo e($project['id']); ?>&view=calendar" class="btn <?php echo $view==='calendar' ? 'btn-secondary' : 'btn-primary'; ?>"><?php echo __('calendar'); ?></a>
     <a href="index.php?controller=task&project_id=<?php echo e($project['id']); ?>&view=gantt" class="btn <?php echo $view==='gantt' ? 'btn-secondary' : 'btn-primary'; ?>"><?php echo __('gantt'); ?></a>
-    <a href="index.php?controller=task&project_id=<?php echo e($project['id']); ?>&view=flow" class="btn <?php echo $view==='flow' ? 'btn-secondary' : 'btn-primary'; ?>"><?php echo __('flow'); ?></a>
+    <!-- Flow view removed from navigation -->
 </div>
 
 <!-- Filter form similar to other views -->
 <div class="task-filter" style="margin-bottom:1rem;">
-    <form method="get" style="display:flex; flex-wrap:wrap; gap:0.5rem; align-items:flex-end;">
+    <form method="get" class="row g-2 align-items-end">
         <input type="hidden" name="controller" value="task">
         <input type="hidden" name="project_id" value="<?php echo e($project['id']); ?>">
         <input type="hidden" name="view" value="gantt">
-        <div>
-            <label style="font-size:0.75rem; color:var(--muted);" for="tag_filter"><?php echo __('tag_label'); ?></label><br>
-            <input type="text" id="tag_filter" name="tag_filter" value="<?php echo e($_GET['tag_filter'] ?? ''); ?>" placeholder="<?php echo __('tags_placeholder'); ?>" style="padding:0.3rem; border:1px solid var(--border); border-radius:0.25rem; font-size:0.75rem;">
+        <div class="col-sm-2">
+            <label for="tag_filter" class="form-label small text-muted mb-0"><?php echo __('tag_label'); ?></label>
+            <input type="text" id="tag_filter" name="tag_filter" class="form-control form-control-sm" value="<?php echo e($_GET['tag_filter'] ?? ''); ?>" placeholder="<?php echo __('tags_placeholder'); ?>">
         </div>
-        <div>
-            <label style="font-size:0.75rem; color:var(--muted);" for="user_filter"><?php echo __('user_label'); ?></label><br>
-            <select id="user_filter" name="user_filter" style="padding:0.3rem; border:1px solid var(--border); border-radius:0.25rem; font-size:0.75rem;">
+        <div class="col-sm-2">
+            <label for="user_filter" class="form-label small text-muted mb-0"><?php echo __('user_label'); ?></label>
+            <select id="user_filter" name="user_filter" class="form-select form-select-sm">
                 <option value=""><?php echo __('any'); ?></option>
                 <?php foreach ($users as $u): ?>
                     <option value="<?php echo e($u['id']); ?>" <?php echo (isset($_GET['user_filter']) && $_GET['user_filter'] == $u['id']) ? 'selected' : ''; ?>><?php echo e($u['full_name']); ?></option>
                 <?php endforeach; ?>
             </select>
         </div>
-        <div>
-            <label style="font-size:0.75rem; color:var(--muted);" for="priority_filter"><?php echo __('priority_label'); ?></label><br>
-            <select id="priority_filter" name="priority_filter" style="padding:0.3rem; border:1px solid var(--border); border-radius:0.25rem; font-size:0.75rem;">
+        <div class="col-sm-2">
+            <label for="priority_filter" class="form-label small text-muted mb-0"><?php echo __('priority_label'); ?></label>
+            <select id="priority_filter" name="priority_filter" class="form-select form-select-sm">
                 <option value=""><?php echo __('any'); ?></option>
                 <option value="high" <?php echo (isset($_GET['priority_filter']) && $_GET['priority_filter'] === 'high') ? 'selected' : ''; ?>><?php echo __('high'); ?></option>
                 <option value="normal" <?php echo (isset($_GET['priority_filter']) && $_GET['priority_filter'] === 'normal') ? 'selected' : ''; ?>><?php echo __('normal'); ?></option>
                 <option value="low" <?php echo (isset($_GET['priority_filter']) && $_GET['priority_filter'] === 'low') ? 'selected' : ''; ?>><?php echo __('low'); ?></option>
             </select>
         </div>
-        <div>
-            <label style="font-size:0.75rem; color:var(--muted);" for="start_filter"><?php echo __('from'); ?></label><br>
-            <input type="date" id="start_filter" name="start_filter" value="<?php echo e($_GET['start_filter'] ?? ''); ?>" style="padding:0.3rem; border:1px solid var(--border); border-radius:0.25rem; font-size:0.75rem;">
+        <div class="col-sm-2">
+            <label for="start_filter" class="form-label small text-muted mb-0"><?php echo __('from'); ?></label>
+            <input type="date" id="start_filter" name="start_filter" class="form-control form-control-sm" value="<?php echo e($_GET['start_filter'] ?? ''); ?>">
         </div>
-        <div>
-            <label style="font-size:0.75rem; color:var(--muted);" for="end_filter"><?php echo __('to'); ?></label><br>
-            <input type="date" id="end_filter" name="end_filter" value="<?php echo e($_GET['end_filter'] ?? ''); ?>" style="padding:0.3rem; border:1px solid var(--border); border-radius:0.25rem; font-size:0.75rem;">
+        <div class="col-sm-2">
+            <label for="end_filter" class="form-label small text-muted mb-0"><?php echo __('to'); ?></label>
+            <input type="date" id="end_filter" name="end_filter" class="form-control form-control-sm" value="<?php echo e($_GET['end_filter'] ?? ''); ?>">
         </div>
-        <div>
-            <button type="submit" class="btn btn-primary" style="padding:0.3rem 0.6rem; font-size:0.75rem;"><?php echo __('apply'); ?></button>
-        </div>
-        <div>
-            <a href="index.php?controller=task&project_id=<?php echo e($project['id']); ?>&view=gantt" class="btn btn-secondary" style="padding:0.3rem 0.6rem; font-size:0.75rem;"><?php echo __('clear'); ?></a>
+        <div class="col-sm-auto d-flex gap-2">
+            <button type="submit" class="btn btn-primary btn-sm"><?php echo __('apply'); ?></button>
+            <a href="index.php?controller=task&project_id=<?php echo e($project['id']); ?>&view=gantt" class="btn btn-secondary btn-sm"><?php echo __('clear'); ?></a>
         </div>
     </form>
 </div>
@@ -130,7 +128,8 @@
     }
     ?>
     <!-- Table of tasks for quick access -->
-    <div style="margin-top:1rem; overflow-x:auto;">
+    <!-- Wrap the tasks table in a scrollable container to prevent the Gantt view from becoming too tall -->
+    <div style="margin-top:1rem; overflow-x:auto; max-height:300px; overflow-y:auto;">
         <table style="width:100%; border-collapse:collapse;" class="table table-bordered table-sm">
             <thead>
                 <tr>

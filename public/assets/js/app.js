@@ -21,7 +21,17 @@ document.addEventListener('DOMContentLoaded', () => {
         toggleBtn.addEventListener('click', () => {
             const sidebar = document.querySelector('.sidebar');
             if (sidebar) {
-                sidebar.classList.toggle('collapsed');
+                const isCollapsed = sidebar.classList.toggle('collapsed');
+                // Persist state via AJAX so the server remembers the preference
+                fetch('index.php?controller=ui&action=setSidebar', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'state=' + (isCollapsed ? 'collapsed' : 'expanded')
+                }).catch(() => {
+                    // Ignore errors; UI state persistence is non-critical
+                });
             }
         });
     }
@@ -120,6 +130,10 @@ function updateKanbanItemStyles(board) {
         // Determine current status from column dataset
         const column = item.closest('.kanban-column');
         const status = column ? column.getAttribute('data-status') : null;
+        // Skip resetting styles on items flagged with data-warning (completed tasks with pending subtasks)
+        if (item.getAttribute('data-warning') === '1') {
+            return;
+        }
         // Reset styles to default
         item.style.backgroundColor = '';
         item.style.border = '';

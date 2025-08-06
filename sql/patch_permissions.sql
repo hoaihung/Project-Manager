@@ -18,7 +18,7 @@ WHERE u.role_id = 1;
 -- Insert or update non-admin users with default disabled permissions
 REPLACE INTO settings (`key`, `value`)
 SELECT CONCAT('permissions_', u.id) AS `key`,
-       '{"create_project":0,"edit_project":0,"delete_project":0,"edit_task":0,"delete_task":0,"access_projects":[]}' AS `value`
+       '{"create_project":0,"edit_project":0,"delete_project":0,"edit_task":0,"delete_task":0,"access_projects":[],"view_any_note":0}' AS `value`
 FROM users u
 WHERE u.role_id <> 1;
 

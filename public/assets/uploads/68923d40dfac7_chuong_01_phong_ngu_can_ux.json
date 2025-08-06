@@ -1,0 +1,118 @@
+{
+  "chapterNumber": 1,
+  "chapterTitle": "Phòng ngủ cũng cần 'UX'? Khi nơi nghỉ ngơi lại là nguồn cơn của mệt mỏi",
+  "coverImage": {
+    "url": null,
+    "alt": "Một bên là hình ảnh phòng ngủ lộn xộn với ánh sáng xanh từ điện thoại, một bên là phòng ngủ gọn gàng, ấm cúng với ánh sáng vàng dịu nhẹ."
+  },
+  "readingTimeInMinutes": 15,
+  "difficulty": "Cơ bản",
+  "learningObjectives": {
+    "title": "1. Mục tiêu Chương",
+    "objectives": [
+      "Hiểu khái niệm 'User Experience (UX)' không chỉ dành cho ứng dụng, mà còn áp dụng trực tiếp cho không gian vật lý như phòng ngủ.",
+      "Nhận ra rằng rất nhiều vấn đề về giấc ngủ và sự thư giãn có thể bắt nguồn từ những 'lỗi thiết kế' trong chính căn phòng của mình.",
+      "Xây dựng một lăng kính mới để nhìn nhận phòng ngủ như một 'sản phẩm' có mục tiêu rõ ràng: giúp bạn phục hồi năng lượng."
+    ]
+  },
+  "mythBuster": {
+    "title": "2. Lầm tưởng cần phá bỏ",
+    "myth": "Ngủ không ngon là do căng thẳng, do sức khỏe hoặc do suy nghĩ nhiều. Phòng ngủ chỉ là nơi để ngủ, không ảnh hưởng nhiều.",
+    "truth": "Căng thẳng và sức khỏe chắc chắn có ảnh hưởng, nhưng phòng ngủ của bạn là một 'diễn viên' cực kỳ quan trọng trong vở kịch giấc ngủ. Một phòng ngủ được 'thiết kế' tồi có thể khuếch đại căng thẳng và phá hoại giấc ngủ, trong khi một phòng ngủ được thiết kế tốt có thể trở thành đồng minh mạnh mẽ nhất giúp bạn thư giãn và phục hồi."
+  },
+  "mainContent": {
+    "title": "3. Nội dung chính",
+    "blocks": [
+      {
+        "type": "quote",
+        "content": "Chúng ta định hình không gian sống, và rồi không gian sống định hình chúng ta.",
+        "author": "Winston Churchill"
+      },
+      {
+        "type": "paragraph",
+        "content": "Phòng ngủ. Chỉ nghe đến tên thôi, chúng ta đã mường tượng ra một chốn bình yên, một thánh địa riêng tư nơi ta trút bỏ mọi gánh nặng của một ngày dài để chìm vào giấc ngủ. Nó được cho là trạm sạc năng lượng, là nơi trú ẩn an toàn nhất. Nhưng, hãy thành thật một chút. Đã bao nhiêu lần, chính 'thánh địa' đó lại trở thành hiện trường của những đêm trằn trọc, những buổi sáng uể oải, và những sự bực bội không đáng có?"
+      },
+      {
+        "type": "paragraph",
+        "content": "Chúng ta đổ lỗi cho công việc căng thẳng, cho những lo toan cuộc sống. Nhưng nếu tôi nói với bạn rằng một trong những thủ phạm chính đang âm thầm phá hoại giấc ngủ của bạn chính là... chiếc công tắc đèn được đặt sai vị trí? Hay tiếng 'cạch' của cánh cửa tủ quần áo? Hoặc ánh sáng xanh le lói từ cục sạc điện thoại? Đây là lúc chúng ta cần nói về **UX** trong phòng ngủ."
+      },
+      {
+        "type": "subheading",
+        "content": "Khi 'Sản phẩm' quan trọng nhất của bạn bị lỗi"
+      },
+      {
+        "type": "paragraph",
+        "content": "Hãy thử nhìn nhận phòng ngủ của bạn không phải như một căn phòng, mà là một **sản phẩm trải nghiệm** được thiết kế phức tạp. 'Người dùng' của sản phẩm này chính là bạn. Và 'mục tiêu công việc' (Job-to-be-Done) của nó rất rõ ràng: giúp bạn chuyển từ trạng thái tỉnh táo, căng thẳng sang trạng thái thư giãn, nghỉ ngơi và phục hồi năng lượng một cách hiệu quả nhất."
+      },
+      {
+        "type": "paragraph",
+        "content": "Vậy, tại sao 'sản phẩm' này lại thường xuyên 'bị lỗi'? Tại sao nó lại không hoàn thành tốt công việc của mình? Bởi vì nó chứa đầy những 'lỗi thiết kế' mà chúng ta đã quen đến mức không còn nhận ra."
+      },
+      {
+        "type": "checklist",
+        "title": "Bạn có nhận ra những 'bug' quen thuộc này không?",
+        "items": [
+          "Bạn đã yên vị trên giường, ấm áp trong chăn, và chợt nhận ra mình quên tắt đèn trần. Bạn phải đối mặt với một lựa chọn đau đớn: vùng dậy khỏi chốn thiên đường, hay cố ngủ trong ánh sáng khó chịu.",
+          "Nửa đêm khát nước, bạn mò mẫm trong bóng tối để đến công tắc đèn, và bị 'tấn công' bởi một luồng ánh sáng trắng chói lòa, khiến cơn buồn ngủ tan biến.",
+          "Tiếng chuông báo thức inh ỏi vang lên. Bạn quờ quạng trong cơn ngái ngủ để tắt nó, nhưng lại bấm nhầm nút 'báo lại sau 10 phút' (snooze) lần thứ ba.",
+          "Chiếc tủ đầu giường của bạn là một mớ hỗn độn gồm sách đọc dở, cốc nước, điện thoại, sạc dự phòng... khiến bạn cảm thấy bừa bộn ngay cả trước khi nhắm mắt."
+        ]
+      },
+      {
+        "type": "paragraph",
+        "content": "Mỗi một ví dụ trên đều là một 'trải nghiệm người dùng' tồi. Chúng là những 'điểm ma sát' (friction points) nhỏ nhưng tích tụ lại, chúng tạo ra những rào cản vô hình ngăn bạn đến với một giấc ngủ ngon."
+      },
+      {
+        "type": "alert",
+        "level": "info",
+        "content": "Đây là một sự thật có thể làm bạn ngạc nhiên: **Phòng ngủ của bạn không phải là một không gian thụ động.** Nó đang tích cực tương tác với bạn, ngay cả khi bạn đang ngủ. Ánh sáng, âm thanh, nhiệt độ, không khí, và sự sắp xếp của các vật dụng đang liên tục gửi tín hiệu đến não bộ của bạn, chỉ dẫn nó nên thư giãn hay nên cảnh giác."
+      },
+      {
+        "type": "paragraph",
+        "content": "Mục tiêu của cuốn sách này không phải là để bạn phải đập đi xây lại hay mua sắm những món đồ đắt tiền. Mục tiêu của nó là trao cho bạn một cặp kính mới - cặp kính UX - để nhìn thấu những vấn đề tiềm ẩn trong chính không gian của mình. Một khi bạn đã nhìn thấy chúng, bạn sẽ không thể 'bỏ qua' chúng được nữa. Và đó là bước đầu tiên để bạn giành lại quyền kiểm soát giấc ngủ và sự thư giãn của mình, biến phòng ngủ từ một nguồn cơn của mệt mỏi trở thành đồng minh tuyệt vời nhất."
+      }
+    ]
+  },
+  "marketersToolkit": {
+    "title": "4. Marketer's Toolkit",
+    "tools": [
+      {
+        "term": "Bedroom UX (UX Phòng ngủ)",
+        "definition": "Toàn bộ trải nghiệm, cảm nhận và sự tương tác của một người với không gian phòng ngủ và các vật dụng trong đó, với mục tiêu cuối cùng là sự thư giãn và phục hồi năng lượng."
+      },
+      {
+        "term": "Friction (Ma sát)",
+        "definition": "Trong UX, đây là bất kỳ yếu tố nào làm chậm, cản trở hoặc gây khó khăn cho người dùng khi họ cố gắng hoàn thành một mục tiêu. Việc phải ra khỏi giường để tắt đèn là một ví dụ điển hình về 'ma sát'."
+      },
+      {
+        "term": "Job-to-be-Done (Mục tiêu công việc)",
+        "definition": "Khái niệm chỉ mục tiêu cơ bản mà người dùng 'thuê' một sản phẩm để thực hiện. Bạn 'thuê' phòng ngủ để giúp bạn nghỉ ngơi và phục hồi."
+      }
+    ]
+  },
+  "mindsetCorner": {
+    "title": "5. Góc nhìn của Người sành sỏi",
+    "insight": "Hãy bắt đầu đặt câu hỏi 'Tại sao?'. 'Tại sao công tắc đèn lại ở đó?'. 'Tại sao đồng hồ báo thức của mình lại có âm thanh khó chịu như vậy?'. 'Tại sao mình lại luôn để cốc nước ở vị trí này?'. Việc đặt câu hỏi sẽ biến bạn từ một 'người dùng' bị động thành một 'nhà thiết kế' chủ động cho chính không gian của mình."
+  },
+  "projectExercise": {
+    "title": "7. Bài tập 'Tủ Đồ Tỉnh Thức' (Phiên bản Phòng ngủ)",
+    "description": "Bắt đầu dự án cá nhân 'Thánh địa Bình yên' của chúng ta.",
+    "instruction": "Tối nay, trước khi đi ngủ, hãy dành 5 phút để quan sát. Không cần thay đổi gì cả. Chỉ cần ghi lại MỘT điều trong phòng khiến bạn cảm thấy dễ chịu, và MỘT điều khiến bạn cảm thấy hơi phiền toái, dù là nhỏ nhất.",
+    "example": "Điều dễ chịu: Ánh sáng vàng từ chiếc đèn ngủ đầu giường rất dịu mắt. Điều phiền toái: Dây sạc điện thoại quá ngắn, khiến tôi phải với người một cách khó xử để đặt điện thoại lên tủ đầu giường.",
+    "resources": []
+  },
+  "summary": {
+    "title": "8. Tóm tắt & Key Takeaways",
+    "takeaways": [
+      "UX không chỉ dành cho công nghệ, nó là một lăng kính mạnh mẽ để phân tích mọi không gian tương tác, bao gồm cả phòng ngủ của bạn.",
+      "Phòng ngủ là một 'sản phẩm' có mục tiêu công việc rõ ràng: giúp bạn nghỉ ngơi. Nhiều vấn đề về giấc ngủ là do sản phẩm này bị 'lỗi thiết kế'.",
+      "Những phiền toái nhỏ (ma sát) như vị trí công tắc đèn, âm báo thức... có thể tích tụ và ảnh hưởng lớn đến chất lượng thư giãn.",
+      "Bắt đầu quan sát và đặt câu hỏi về không gian của mình là bước đầu tiên để giành lại quyền kiểm soát và biến phòng ngủ thành đồng minh."
+    ]
+  },
+  "teaser": "Vậy chính xác thì những 'lỗi thiết kế' này tác động đến não bộ của chúng ta như thế nào? Tại sao việc mò mẫm tìm công tắc đèn lúc nửa đêm lại gây căng thẳng đến vậy? Chương tiếp theo, chúng ta sẽ đi sâu vào một trong những khái niệm UX quan trọng nhất: 'Tải Nhận Thức Lúc Nửa Đêm'.",
+  "navigation": {
+    "previousChapter": null,
+    "nextChapter": 2
+  }
+}

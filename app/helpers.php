@@ -133,6 +133,8 @@ if (!function_exists('user_can')) {
         $perms = get_user_permissions((int)$currentUser['id']);
         // Determine by permission key
         switch ($permission) {
+            case 'view_any_note':
+                return !empty($perms['view_any_note']);
             case 'create_project':
                 return !empty($perms['create_project']);
             case 'edit_project':
@@ -149,6 +151,93 @@ if (!function_exists('user_can')) {
             default:
                 return false;
         }
+    }
+}
+
+// -----------------------------------------------------------------------------
+// Note permission helper
+//
+// This helper evaluates whether a user can view a given note record.  It
+// mirrors the logic used in NoteController::canViewNote() to ensure
+// consistent access control across controllers and views.  The function
+// accepts a note associative array containing at least `id`, `user_id` and
+// `project_id`, as well as the ID of the user performing the check.  It
+// returns true if the user may view the note and false otherwise.  See
+// documentation in docs/permissions.md for details.
+
+if (!function_exists('note_can_view')) {
+    /**
+     * Determine whether a user can view a specific note.
+     *
+     * The rules are:
+     *  - Administrators can view all notes.
+     *  - The author of the note can view it.
+     *  - Users with the special permission 'view_any_note' can view all notes.
+     *  - If the note is associated with a project, users with access to that
+     *    project may view it.
+     *  - If the note is attached to tasks, users assigned to those tasks or
+     *    users with access to the tasks' projects may view it.
+     *  - Global notes (project_id is NULL and no task links) are only
+     *    visible to their author, administrators or those with
+     *    'view_any_note'.
+     *
+     * @param array $note The note record to check.
+     * @param int $userId The ID of the user performing the check.
+     * @return bool True if the user may view the note, false otherwise.
+     */
+    function note_can_view(array $note, int $userId): bool
+    {
+        // Ensure there is a current user session
+        if ($userId <= 0) {
+            return false;
+        }
+        // Load user model to determine role
+        $userModel = new \app\Model\User();
+        $user      = $userModel->findById($userId);
+        if (!$user) {
+            return false;
+        }
+        // Admins can view all notes
+        if (isset($user['role_id']) && (int)$user['role_id'] === 1) {
+            return true;
+        }
+        // Author of the note can view
+        if (isset($note['user_id']) && (int)$note['user_id'] === $userId) {
+            return true;
+        }
+        // Check special permission view_any_note
+        if (user_can('view_any_note')) {
+            return true;
+        }
+        // Check project association
+        $projectId = !empty($note['project_id']) ? (int)$note['project_id'] : null;
+        if ($projectId && user_can('access_project', $projectId)) {
+            return true;
+        }
+        // Check tasks associated with this note: if user is assigned to any
+        // task or has access to that task's project, allow view.
+        $noteModel = new \app\Model\Note();
+        $tasks     = $noteModel->getTasks($note['id']);
+        if (!empty($tasks)) {
+            $taskUserModel = new \app\Model\TaskUser();
+            foreach ($tasks as $task) {
+                $taskId    = (int)$task['id'];
+                $projId    = (int)($task['project_id'] ?? 0);
+                // Check if user is assigned to this task
+                $assignees = $taskUserModel->getUsersByTask($taskId);
+                foreach ($assignees as $assignee) {
+                    if ((int)$assignee['id'] === $userId) {
+                        return true;
+                    }
+                }
+                // Or user can access the project of the task
+                if ($projId && user_can('access_project', $projId)) {
+                    return true;
+                }
+            }
+        }
+        // Otherwise not permitted
+        return false;
     }
 }
 
@@ -176,6 +265,60 @@ if (!function_exists('e')) {
     function e(?string $string): string
     {
         return htmlspecialchars($string ?? '', ENT_QUOTES, 'UTF-8');
+    }
+}
+
+/**
+ * Convert a plain text or markdown string into safe HTML.  This helper
+ * supports a small subset of Markdown syntax (bold, italics, links and
+ * simple checklists) and automatically turns bare URLs into clickable
+ * anchors.  Use this when rendering user‑generated note content or
+ * descriptions/comments that may contain links.  The implementation
+ * escapes all HTML before applying regex replacements to avoid XSS.
+ *
+ * @param string $text
+ * @return string
+ */
+if (!function_exists('markdown_to_html')) {
+    function markdown_to_html(string $text): string
+    {
+        // Escape HTML characters first
+        $html = htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
+        // Bold **text**
+        $html = preg_replace('/\*\*(.+?)\*\*/s', '<strong>$1</strong>', $html);
+        // Italic *text*
+        $html = preg_replace('/\*(.+?)\*/s', '<em>$1</em>', $html);
+        // Markdown links [text](url)
+        $html = preg_replace('/\[(.+?)\]\((https?:\/\/[^\s]+)\)/', '<a href="$2" target="_blank" rel="noopener">$1</a>', $html);
+        // Bare URLs
+        $html = preg_replace('/(https?:\/\/[^\s<]+)/', '<a href="$1" target="_blank" rel="noopener">$1</a>', $html);
+        // Checklist items: - [ ] item or - [x] item
+        $html = preg_replace_callback('/^- \[( |x)\] (.*)$/m', function ($matches) {
+            $checked = trim($matches[1]) === 'x' ? 'checked' : '';
+            $content = $matches[2];
+            return '<label style="display:block;"><input type="checkbox" disabled ' . $checked . '> ' . $content . '</label>';
+        }, $html);
+        // Convert newlines to <br> for simple line breaks
+        $html = nl2br($html);
+        return $html;
+    }
+}
+
+/**
+ * Convert plain text URLs into clickable links.  This helper is used
+ * when rendering comments and descriptions that may contain raw URLs.
+ * It does not support full markdown but will escape HTML and
+ * substitute anchors for http/https links.
+ *
+ * @param string|null $text
+ * @return string
+ */
+if (!function_exists('linkify')) {
+    function linkify(?string $text): string
+    {
+        $text = $text ?? '';
+        $escaped = htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
+        return preg_replace('/(https?:\/\/[^\s<]+)/', '<a href="$1" target="_blank" rel="noopener">$1</a>', $escaped);
     }
 }
 

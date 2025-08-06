@@ -294,6 +294,66 @@ class TaskController extends Controller
                     }
                 }
             }
+            // Handle external links associated with this task
+            if (!empty($_POST['link_urls']) && is_array($_POST['link_urls'])) {
+                $linkModel = $this->loadModel('TaskLink');
+                $linksData = [];
+                $names = $_POST['link_names'] ?? [];
+                foreach ($_POST['link_urls'] as $i => $url) {
+                    $url = trim($url);
+                    if ($url !== '') {
+                        $name = isset($names[$i]) ? trim($names[$i]) : null;
+                        $linksData[] = [
+                            'name' => $name,
+                            'url'  => $url,
+                        ];
+                    }
+                }
+                if (!empty($linksData)) {
+                    $linkModel->replaceForTask($newId, $linksData);
+                }
+            }
+            // Handle checklist items for this task
+            if (isset($_POST['checklist_content']) && is_array($_POST['checklist_content'])) {
+                $checklistModel = $this->loadModel('ChecklistItem');
+                $items = [];
+                foreach ($_POST['checklist_content'] as $i => $content) {
+                    $content = trim($content);
+                    if ($content !== '') {
+                        $done = isset($_POST['checklist_done'][$i]) ? 1 : 0;
+                        $items[] = [
+                            'content'    => $content,
+                            'is_done'    => $done,
+                            'sort_order' => $i + 1,
+                        ];
+                    }
+                }
+                if (!empty($items)) {
+                    $checklistModel->replaceForTask($newId, $items);
+                }
+
+            // Attach any selected existing notes to this new task
+            if (!empty($_POST['existing_notes']) && is_array($_POST['existing_notes'])) {
+                $noteIds = array_map('intval', $_POST['existing_notes']);
+                $noteModel = $this->loadModel('Note');
+                foreach ($noteIds as $noteId) {
+                    if ($noteId > 0) {
+                        $note = $noteModel->findById($noteId);
+                        if ($note && note_can_view($note, $_SESSION['user_id'])) {
+                            $currentTasks = $noteModel->getTasks($noteId);
+                            $ids = [];
+                            foreach ($currentTasks as $t) {
+                                $ids[] = (int)$t['id'];
+                            }
+                            if (!in_array($newId, $ids)) {
+                                $ids[] = $newId;
+                                $noteModel->setTasks($noteId, $ids);
+                            }
+                        }
+                    }
+                }
+            }
+            }
             // Write to audit log
             $logModel = $this->loadModel('Log');
             $logModel->create([
@@ -314,12 +374,30 @@ class TaskController extends Controller
                 }
             }
         }
+        // Determine available notes that the user can attach to this new task
+        $availableNotes = [];
+        try {
+            $noteModel = $this->loadModel('Note');
+            $notesAll  = $noteModel->getAll($projectId);
+            $currentUserId = $_SESSION['user_id'];
+            foreach ($notesAll as $n) {
+                if (note_can_view($n, $currentUserId)) {
+                    $availableNotes[] = $n;
+                }
+            }
+        } catch (\Throwable $e) {
+            $availableNotes = [];
+        }
+        // Provide empty arrays for links and checklist items when creating a new task
         $this->render('tasks/create', [
-            'project_id' => $projectId,
-            'users' => $users,
-            'parent_id' => $parentTaskId,
-            'statusParam' => $statusParam,
-            'parentOptions' => $parentOptions,
+            'project_id'      => $projectId,
+            'users'           => $users,
+            'parent_id'       => $parentTaskId,
+            'statusParam'     => $statusParam,
+            'parentOptions'   => $parentOptions,
+            'links'           => [],
+            'checklistItems'  => [],
+            'availableNotes'  => $availableNotes,
         ]);
     }
 
@@ -443,6 +521,44 @@ class TaskController extends Controller
                     }
                 }
             }
+            // Handle external links update for this task.  Replace existing
+            // links with the submitted ones.  Fields are provided as
+            // link_urls[] and link_names[].
+            if (!empty($_POST['link_urls']) && is_array($_POST['link_urls'])) {
+                $linkModel = $this->loadModel('TaskLink');
+                $linksData = [];
+                $names = $_POST['link_names'] ?? [];
+                foreach ($_POST['link_urls'] as $i => $url) {
+                    $url = trim($url);
+                    if ($url !== '') {
+                        $name = isset($names[$i]) ? trim($names[$i]) : null;
+                        $linksData[] = [
+                            'name' => $name,
+                            'url'  => $url,
+                        ];
+                    }
+                }
+                $linkModel->replaceForTask($taskId, $linksData);
+            }
+            // Handle checklist update for this task.  Replace existing
+            // checklist items with the submitted values.  Content and done
+            // flags are keyed by index in the form.
+            if (isset($_POST['checklist_content']) && is_array($_POST['checklist_content'])) {
+                $checklistModel = $this->loadModel('ChecklistItem');
+                $items = [];
+                foreach ($_POST['checklist_content'] as $i => $content) {
+                    $content = trim($content);
+                    if ($content !== '') {
+                        $done = isset($_POST['checklist_done'][$i]) ? 1 : 0;
+                        $items[] = [
+                            'content'    => $content,
+                            'is_done'    => $done,
+                            'sort_order' => $i + 1,
+                        ];
+                    }
+                }
+                $checklistModel->replaceForTask($taskId, $items);
+            }
             // Write to audit log
             $logModel = $this->loadModel('Log');
             $logModel->create([
@@ -450,16 +566,58 @@ class TaskController extends Controller
                 'action' => 'update_task',
                 'details' => 'Updated task #' . $taskId,
             ]);
-            // Stay on edit page after update
+            // If user requested to add a subtask, redirect to the subtask creation page after saving
+            if (!empty($_POST['redirect_to_subtask']) && $_POST['redirect_to_subtask'] == '1') {
+                // Determine return view from query
+                $rv = $_GET['view'] ?? 'kanban';
+                redirect('index.php?controller=task&action=create&project_id=' . $projectId . '&parent_id=' . $taskId . '&view=' . $rv);
+            }
+            // Otherwise stay on edit page after update
             redirect('index.php?controller=task&action=edit&id=' . $taskId);
         }
+        // Load links and checklist items for this task so the view can display them
+        $linkModel = $this->loadModel('TaskLink');
+        $links = $linkModel->getByTask($taskId);
+        $checklistModel = $this->loadModel('ChecklistItem');
+        $checklistItems = $checklistModel->getByTask($taskId);
+        // Load notes associated with this task to show in the side panel
+        $noteModel = $this->loadModel('Note');
+        try {
+            $notesForTask = $noteModel->getByTask($taskId);
+        } catch (\Throwable $e) {
+            $notesForTask = [];
+        }
+        // Determine additional notes available to attach to this task.  Only
+        // include notes the user has permission to view and which are not
+        // already linked to this task.
+        $availableNotes = [];
+        try {
+            $allNotes = $noteModel->getAll($projectId);
+            $existingIds = array_map(function ($n) { return (int)$n['id']; }, $notesForTask);
+            $currentUserId = $_SESSION['user_id'];
+            foreach ($allNotes as $n) {
+                $nid = (int)$n['id'];
+                if (in_array($nid, $existingIds)) {
+                    continue;
+                }
+                if (note_can_view($n, $currentUserId)) {
+                    $availableNotes[] = $n;
+                }
+            }
+        } catch (\Throwable $e) {
+            $availableNotes = [];
+        }
         $this->render('tasks/edit', [
-            'task' => $task,
-            'users' => $users,
-            'parentOptions' => $tasksForSelect,
-            'subtasks' => $subtasks,
-            'hasSubtasks' => $hasSubtasks,
+            'task'            => $task,
+            'users'           => $users,
+            'parentOptions'   => $tasksForSelect,
+            'subtasks'        => $subtasks,
+            'hasSubtasks'     => $hasSubtasks,
             'assignedUserIds' => $assignedUserIds,
+            'links'           => $links,
+            'checklistItems'  => $checklistItems,
+            'notesForTask'    => $notesForTask,
+            'availableNotes'  => $availableNotes,
         ]);
     }
 
@@ -725,6 +883,377 @@ class TaskController extends Controller
             $taskModel->updateSortOrder((int)$tid, $pos++);
         }
         echo json_encode(['status' => 'success']);
+    }
+
+    /**
+     * AJAX endpoint to add a link to a task.
+     * Accepts POST parameters `task_id`, `name` and `url`.
+     * Returns JSON with updated list of links.
+     */
+    public function addLinkAjax(): void
+    {
+        $this->requireLogin();
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            header('Content-Type: application/json');
+            echo json_encode(['error' => 'Method Not Allowed']);
+            return;
+        }
+        $taskId = (int)($_POST['task_id'] ?? 0);
+        $name   = trim($_POST['name'] ?? '');
+        $url    = trim($_POST['url'] ?? '');
+        if ($taskId < 1 || ($name === '' && $url === '')) {
+            http_response_code(400);
+            header('Content-Type: application/json');
+            echo json_encode(['error' => 'Invalid parameters']);
+            return;
+        }
+        $taskModel = $this->loadModel('Task');
+        $task = $taskModel->findById($taskId);
+        if (!$task) {
+            http_response_code(404);
+            header('Content-Type: application/json');
+            echo json_encode(['error' => 'Task not found']);
+            return;
+        }
+        // Check permission: user must be allowed to access the project
+        if (!user_can('access_project', $task['project_id'])) {
+            http_response_code(403);
+            header('Content-Type: application/json');
+            echo json_encode(['error' => 'Forbidden']);
+            return;
+        }
+        $linkModel = $this->loadModel('TaskLink');
+        $linkModel->create($taskId, $name !== '' ? $name : null, $url);
+        // Retrieve updated links
+        $links = $linkModel->getByTask($taskId);
+        $result = [];
+        foreach ($links as $l) {
+            $icon = 'link';
+            if (!empty($l['url'])) {
+                if (strpos($l['url'], 'docs.google') !== false) {
+                    $icon = 'google-doc';
+                } elseif (strpos($l['url'], 'sheets.google') !== false) {
+                    $icon = 'google-sheet';
+                }
+            }
+            $result[] = [
+                'id'   => $l['id'],
+                'name' => $l['name'],
+                'url'  => $l['url'],
+                'icon' => $icon,
+            ];
+        }
+        header('Content-Type: application/json');
+        echo json_encode(['success' => true, 'links' => $result]);
+    }
+
+    /**
+     * AJAX endpoint to delete a link from a task.
+     * Accepts POST parameters `task_id` and `link_id`.
+     */
+    public function deleteLinkAjax(): void
+    {
+        $this->requireLogin();
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            header('Content-Type: application/json');
+            echo json_encode(['error' => 'Method Not Allowed']);
+            return;
+        }
+        $taskId = (int)($_POST['task_id'] ?? 0);
+        $linkId = (int)($_POST['link_id'] ?? 0);
+        if ($taskId < 1 || $linkId < 1) {
+            http_response_code(400);
+            header('Content-Type: application/json');
+            echo json_encode(['error' => 'Invalid parameters']);
+            return;
+        }
+        $taskModel = $this->loadModel('Task');
+        $task = $taskModel->findById($taskId);
+        if (!$task) {
+            http_response_code(404);
+            header('Content-Type: application/json');
+            echo json_encode(['error' => 'Task not found']);
+            return;
+        }
+        if (!user_can('access_project', $task['project_id'])) {
+            http_response_code(403);
+            header('Content-Type: application/json');
+            echo json_encode(['error' => 'Forbidden']);
+            return;
+        }
+        $linkModel = $this->loadModel('TaskLink');
+        $belongs = false;
+        foreach ($linkModel->getByTask($taskId) as $l) {
+            if ((int)$l['id'] === $linkId) {
+                $belongs = true;
+                break;
+            }
+        }
+        if (!$belongs) {
+            http_response_code(403);
+            header('Content-Type: application/json');
+            echo json_encode(['error' => 'Link does not belong to this task']);
+            return;
+        }
+        $linkModel->delete($linkId);
+        // Return updated links
+        $links = $linkModel->getByTask($taskId);
+        $result = [];
+        foreach ($links as $l) {
+            $icon = 'link';
+            if (!empty($l['url'])) {
+                if (strpos($l['url'], 'docs.google') !== false) {
+                    $icon = 'google-doc';
+                } elseif (strpos($l['url'], 'sheets.google') !== false) {
+                    $icon = 'google-sheet';
+                }
+            }
+            $result[] = [
+                'id'   => $l['id'],
+                'name' => $l['name'],
+                'url'  => $l['url'],
+                'icon' => $icon,
+            ];
+        }
+        header('Content-Type: application/json');
+        echo json_encode(['success' => true, 'links' => $result]);
+    }
+
+    /**
+     * AJAX endpoint to attach an existing note to a task.
+     * Accepts POST parameters `task_id` and `note_id`.
+     */
+    public function addNoteToTaskAjax(): void
+    {
+        $this->requireLogin();
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            header('Content-Type: application/json');
+            echo json_encode(['error' => 'Method Not Allowed']);
+            return;
+        }
+        $taskId = (int)($_POST['task_id'] ?? 0);
+        $noteId = (int)($_POST['note_id'] ?? 0);
+        if ($taskId < 1 || $noteId < 1) {
+            http_response_code(400);
+            header('Content-Type: application/json');
+            echo json_encode(['error' => 'Invalid parameters']);
+            return;
+        }
+        $taskModel = $this->loadModel('Task');
+        $task = $taskModel->findById($taskId);
+        if (!$task) {
+            http_response_code(404);
+            header('Content-Type: application/json');
+            echo json_encode(['error' => 'Task not found']);
+            return;
+        }
+        if (!user_can('access_project', $task['project_id'])) {
+            http_response_code(403);
+            header('Content-Type: application/json');
+            echo json_encode(['error' => 'Forbidden']);
+            return;
+        }
+        $noteModel = $this->loadModel('Note');
+        $note = $noteModel->findById($noteId);
+        if (!$note) {
+            http_response_code(404);
+            header('Content-Type: application/json');
+            echo json_encode(['error' => 'Note not found']);
+            return;
+        }
+        // Ensure current user can view this note
+        $currentUserId = $_SESSION['user_id'] ?? 0;
+        if (!note_can_view($note, (int)$currentUserId)) {
+            http_response_code(403);
+            header('Content-Type: application/json');
+            echo json_encode(['error' => 'Cannot view note']);
+            return;
+        }
+        // Attach this task to the note if not already
+        $existingTasks = $noteModel->getTasks($noteId);
+        $taskIds = array_map(function ($t) { return (int)$t['id']; }, $existingTasks);
+        if (!in_array($taskId, $taskIds)) {
+            $taskIds[] = $taskId;
+            $noteModel->setTasks($noteId, $taskIds);
+        }
+        // Return updated notes for this task
+        $notesForTask = $noteModel->getByTask($taskId);
+        $result = [];
+        foreach ($notesForTask as $n) {
+            $title = $n['title'] ?: (mb_substr(strip_tags($n['content']), 0, 30) . '…');
+            $result[] = [
+                'id'    => $n['id'],
+                'title' => $title,
+            ];
+        }
+        header('Content-Type: application/json');
+        echo json_encode(['success' => true, 'notes' => $result]);
+    }
+
+    /**
+     * AJAX endpoint to detach a note from a task.
+     * Accepts POST parameters `task_id` and `note_id`.
+     */
+    public function removeNoteFromTaskAjax(): void
+    {
+        $this->requireLogin();
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            header('Content-Type: application/json');
+            echo json_encode(['error' => 'Method Not Allowed']);
+            return;
+        }
+        $taskId = (int)($_POST['task_id'] ?? 0);
+        $noteId = (int)($_POST['note_id'] ?? 0);
+        if ($taskId < 1 || $noteId < 1) {
+            http_response_code(400);
+            header('Content-Type: application/json');
+            echo json_encode(['error' => 'Invalid parameters']);
+            return;
+        }
+        $taskModel = $this->loadModel('Task');
+        $task = $taskModel->findById($taskId);
+        if (!$task) {
+            http_response_code(404);
+            header('Content-Type: application/json');
+            echo json_encode(['error' => 'Task not found']);
+            return;
+        }
+        if (!user_can('access_project', $task['project_id'])) {
+            http_response_code(403);
+            header('Content-Type: application/json');
+            echo json_encode(['error' => 'Forbidden']);
+            return;
+        }
+        $noteModel = $this->loadModel('Note');
+        $note = $noteModel->findById($noteId);
+        if (!$note) {
+            http_response_code(404);
+            header('Content-Type: application/json');
+            echo json_encode(['error' => 'Note not found']);
+            return;
+        }
+        $noteModel->removeTask($noteId, $taskId);
+        // Return updated notes
+        $notesForTask = $noteModel->getByTask($taskId);
+        $result = [];
+        foreach ($notesForTask as $n) {
+            $title = $n['title'] ?: (mb_substr(strip_tags($n['content']), 0, 30) . '…');
+            $result[] = [
+                'id'    => $n['id'],
+                'title' => $title,
+            ];
+        }
+        header('Content-Type: application/json');
+        echo json_encode(['success' => true, 'notes' => $result]);
+    }
+
+    /**
+     * Attach an existing note to a task via GET request.
+     *
+     * This action expects `id` (task ID), `note_id` (note ID) and an optional
+     * `view` parameter in the query string.  It ensures the user has
+     * permission to access the task's project and edit tasks, and that the
+     * note is visible to the current user via note_can_view().  If the
+     * note is not already linked to the task, the relation is created.
+     * Afterwards the user is redirected back to the task edit page with
+     * the same view mode.  A log entry is created for auditing.
+     */
+    public function addNoteToTask(): void
+    {
+        $this->requireLogin();
+        $taskId    = (int)($_GET['id'] ?? 0);
+        $noteId    = (int)($_GET['note_id'] ?? 0);
+        $returnView = $_GET['view'] ?? 'kanban';
+        if ($taskId < 1 || $noteId < 1) {
+            redirect('index.php');
+        }
+        $taskModel = $this->loadModel('Task');
+        $noteModel = $this->loadModel('Note');
+        $task = $taskModel->findById($taskId);
+        if (!$task) {
+            redirect('index.php');
+        }
+        $projectId = (int)$task['project_id'];
+        // Only allow attaching if user can access the project and edit tasks
+        if (!user_can('access_project', $projectId) || !user_can('edit_task')) {
+            $this->render('errors/no_permission');
+            return;
+        }
+        $note = $noteModel->findById($noteId);
+        if (!$note) {
+            redirect('index.php?controller=task&action=edit&id=' . $taskId . '&view=' . $returnView);
+        }
+        $currentUserId = $_SESSION['user_id'];
+        // Check if user has permission to view the note
+        if (!note_can_view($note, $currentUserId)) {
+            $this->render('errors/no_permission');
+            return;
+        }
+        // Merge task IDs for this note
+        $existing = $noteModel->getTasks($noteId);
+        $taskIds = [];
+        foreach ($existing as $t) {
+            $taskIds[] = (int)$t['id'];
+        }
+        if (!in_array($taskId, $taskIds)) {
+            $taskIds[] = $taskId;
+            $noteModel->setTasks($noteId, $taskIds);
+            // Log the linking
+            $logModel = $this->loadModel('Log');
+            $logModel->create([
+                'user_id' => $currentUserId,
+                'action'  => 'attach_note',
+                'details' => 'Attached note #' . $noteId . ' to task #' . $taskId,
+            ]);
+        }
+        redirect('index.php?controller=task&action=edit&id=' . $taskId . '&view=' . $returnView);
+    }
+
+    /**
+     * Detach a note from a task.  Expects `id` (task ID) and `note_id` in
+     * the query string.  User must have permission to edit the task and
+     * access its project.  After unlinking the note, redirects back to
+     * the edit page preserving the current view mode.
+     */
+    public function removeNoteFromTask(): void
+    {
+        $this->requireLogin();
+        $taskId = (int)($_GET['id'] ?? 0);
+        $noteId = (int)($_GET['note_id'] ?? 0);
+        $returnView = $_GET['view'] ?? 'kanban';
+        if ($taskId < 1 || $noteId < 1) {
+            redirect('index.php');
+        }
+        $taskModel = $this->loadModel('Task');
+        $noteModel = $this->loadModel('Note');
+        $task = $taskModel->findById($taskId);
+        if (!$task) {
+            redirect('index.php');
+        }
+        $projectId = (int)$task['project_id'];
+        // Ensure user can access project and edit tasks
+        if (!user_can('access_project', $projectId) || !user_can('edit_task')) {
+            $this->render('errors/no_permission');
+            return;
+        }
+        $note = $noteModel->findById($noteId);
+        if (!$note) {
+            redirect('index.php?controller=task&action=edit&id=' . $taskId . '&view=' . $returnView);
+        }
+        // Only unlink if note is attached to this task
+        $noteModel->removeTask($noteId, $taskId);
+        // Log
+        $logModel = $this->loadModel('Log');
+        $logModel->create([
+            'user_id' => $_SESSION['user_id'],
+            'action'  => 'detach_note',
+            'details' => 'Detached note #' . $noteId . ' from task #' . $taskId,
+        ]);
+        redirect('index.php?controller=task&action=edit&id=' . $taskId . '&view=' . $returnView);
     }
 
     /**

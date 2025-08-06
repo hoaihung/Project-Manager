@@ -1,0 +1,46 @@
+{
+  "ebookTitle": "UX Phòng Ngủ: Vì Sao Giấc Ngủ Của Bạn (Không) Dễ Dàng Đến Thế?",
+  "totalChapters": 16,
+  "phases": [
+    {
+      "phaseId": "giai_doan_1",
+      "phaseTitle": "GIAI ĐOẠN 1: THỨC TỈNH - Giải mã những \"kẻ trộm\" giấc ngủ vô hình",
+      "phaseDescription": "Xây dựng một lăng kính hoàn toàn mới, giúp bạn nhận ra phòng ngủ là một 'sản phẩm trải nghiệm' và rất nhiều vấn đề về giấc ngủ bắt nguồn từ những lỗi thiết kế mà bạn chưa bao giờ gọi tên.",
+      "badgeEarned": "Nhà Quan Sát Phòng Ngủ (Bedroom Observer)",
+      "chapters": [
+        { "chapterNumber": 1, "chapterTitle": "Phòng ngủ cũng cần 'UX'? Khi nơi nghỉ ngơi lại là nguồn cơn của mệt mỏi", "jsonFile": "chuong_01_phong_ngu_can_ux.json", "type": "lesson" },
+        { "chapterNumber": 2, "chapterTitle": "Tải Nhận Thức Lúc Nửa Đêm: Cuộc chiến với công tắc đèn và đồng hồ báo thức", "jsonFile": "chuong_02_cognitive_load.json", "type": "lesson" },
+        { "chapterNumber": 3, "chapterTitle": "Signifiers & Feedback: Tại sao bạn biết phải kéo rèm và cảm nhận được sự mềm mại?", "jsonFile": "chuong_03_signifiers_feedback.json", "type": "lesson" },
+        { "chapterNumber": 4, "chapterTitle": "Sự Nhất Quán (Consistency): Tại sao mọi chiếc gối đều có một mặt mát hơn?", "jsonFile": "chuong_04_consistency.json", "type": "lesson" },
+        { "chapterNumber": 5, "chapterTitle": "DỰ ÁN NHỎ #1: 'Kiểm toán' Trải nghiệm một Đêm của bạn - Tìm ra những phiền toái nhỏ", "jsonFile": "chuong_05_du_an_nho_1.json", "type": "project" }
+      ]
+    },
+    {
+      "phaseId": "giai_doan_2",
+      "phaseTitle": "GIAI ĐOẠN 2: GIẢI PHẪU & TỐI ƯU - Tinh chỉnh từng yếu tố cốt lõi",
+      "phaseDescription": "Đi sâu 'giải phẫu' từng thành phần trong hệ sinh thái phòng ngủ và cung cấp các giải pháp tối ưu hóa dựa trên khoa học về trải nghiệm và giấc ngủ.",
+      "badgeEarned": "Kiến Trúc Sư Giấc Ngủ (Sleep Architect)",
+      "chapters": [
+        { "chapterNumber": 6, "chapterTitle": "Công thái học của sự Ôm ấp: UX của Đệm, Gối và Chăn", "jsonFile": "chuong_06_ergonomics.json", "type": "lesson" },
+        { "chapterNumber": 7, "chapterTitle": "Giao diện Ánh sáng: Thiết kế công tắc, độ sáng và màu sắc để 'dỗ' não bộ vào giấc ngủ", "jsonFile": "chuong_07_light_ux.json", "type": "lesson" },
+        { "chapterNumber": 8, "chapterTitle": "Giao diện Âm thanh: UX của sự im lặng, tiếng ồn trắng và âm báo thức 'nhân đạo'", "jsonFile": "chuong_08_sound_ux.json", "type": "lesson" },
+        { "chapterNumber": 9, "chapterTitle": "Giao diện Không khí: UX của Nhiệt độ, Độ ẩm và Sự trong lành", "jsonFile": "chuong_09_air_ux.json", "type": "lesson" },
+        { "chapterNumber": 10, "chapterTitle": "DỰ ÁN NHỎ #2: Tái thiết kế một 'Điểm đau' trong phòng ngủ của bạn", "jsonFile": "chuong_10_du_an_nho_2.json", "type": "project" }
+      ]
+    },
+    {
+      "phaseId": "giai_doan_3",
+      "phaseTitle": "GIAI ĐOẠN 3: XÂY DỰNG THÁNH ĐỊA - Thiết kế hệ thống và thói quen bền vững",
+      "phaseDescription": "Kết hợp các yếu tố đã tối ưu thành một hệ thống hài hòa và kiến tạo những thói quen hỗ trợ tối đa cho việc nghỉ ngơi và phục hồi năng lượng.",
+      "badgeEarned": "Bậc Thầy Thư Giãn (Master of Relaxation)",
+      "chapters": [
+        { "chapterNumber": 11, "chapterTitle": "Kiến trúc Thông tin của Tủ đầu giường: Nghệ thuật sắp xếp những gì trong tầm với", "jsonFile": "chuong_11_nightstand_ia.json", "type": "lesson" },
+        { "chapterNumber": 12, "chapterTitle": "Kẻ thù số 1 của Giấc ngủ: Tối ưu hóa 'trải nghiệm' với chiếc điện thoại", "jsonFile": "chuong_12_phone_ux.json", "type": "lesson" },
+        { "chapterNumber": 13, "chapterTitle": "UX của Thói quen: Thiết kế một quy trình 'hạ cánh' trước khi ngủ và 'cất cánh' khi thức dậy", "jsonFile": "chuong_13_routine_ux.json", "type": "lesson" },
+        { "chapterNumber": 14, "chapterTitle": "Accessibility: Thiết kế phòng ngủ cho mọi giai đoạn cuộc sống (mang thai, tuổi già, khi bị ốm)", "jsonFile": "chuong_14_accessibility.json", "type": "lesson" },
+        { "chapterNumber": 15, "chapterTitle": "DỰ ÁN CUỐI CÙNG: Xây dựng 'Bản Tuyên ngôn Phòng ngủ' của bạn", "jsonFile": "chuong_15_du_an_cuoi_cung.json", "type": "project" },
+        { "chapterNumber": 16, "chapterTitle": "TỔNG KẾT: Biến phòng ngủ thành đồng minh tuyệt vời nhất của bạn", "jsonFile": "chuong_16_tong_ket.json", "type": "review" }
+      ]
+    }
+  ]
+}

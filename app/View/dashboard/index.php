@@ -44,7 +44,7 @@
             <span><?php echo e(__('overdue')); ?>: <?php echo e($taskStats['overdue']); ?></span>
         </div>
     </div>
-    <!-- Charts showing distribution of tasks by status and priority -->
+<!-- Charts showing distribution of tasks by status and priority -->
     <div style="margin-top:1rem; display:flex; flex-wrap:wrap; gap:1rem;">
         <div style="flex:1; min-width:280px;">
             <canvas id="statusChart" width="300" height="200"></canvas>
@@ -118,13 +118,26 @@ new Chart(statusCtx, {
     }
 });
 
-// Prepare data for priority chart (High, Normal, Low)
+// Prepare data for priority chart.  We include the new "Urgent" level
+// alongside High, Normal and Low.  Translations are used for labels to
+// support internationalisation.  Colours are chosen to contrast the
+// levels: urgent (dark red), high (red), normal (blue) and low (yellow).
 const priorityData = {
-    labels: ['High', 'Normal', 'Low'],
+    labels: [
+        '<?php echo e(__('urgent')); ?>',
+        '<?php echo e(__('high')); ?>',
+        '<?php echo e(__('normal')); ?>',
+        '<?php echo e(__('low')); ?>'
+    ],
     datasets: [{
-        label: 'Tasks by Priority',
-        data: [<?php echo (int)$priorityCounts['high']; ?>, <?php echo (int)$priorityCounts['normal']; ?>, <?php echo (int)$priorityCounts['low']; ?>],
-        backgroundColor: ['#ef4444', '#3b82f6', '#fbbf24'],
+        label: '<?php echo e(__('tasks')); ?>',
+        data: [
+            <?php echo (int)($priorityCounts['urgent'] ?? 0); ?>,
+            <?php echo (int)($priorityCounts['high'] ?? 0); ?>,
+            <?php echo (int)($priorityCounts['normal'] ?? 0); ?>,
+            <?php echo (int)($priorityCounts['low'] ?? 0); ?>
+        ],
+        backgroundColor: ['#dc2626', '#ef4444', '#3b82f6', '#fbbf24'],
         borderWidth: 1
     }]
 };
@@ -136,7 +149,7 @@ new Chart(priorityCtx, {
         responsive: true,
         plugins: {
             legend: { position: 'bottom' },
-            title: { display: true, text: 'Tasks by Priority' }
+            title: { display: true, text: '<?php echo e(__('tasks')); ?>' }
         }
     }
 });
@@ -227,11 +240,22 @@ new Chart(priorityCtx, {
                                     </div>
                                     <div>
                                         <?php
-                                            $p = $t['priority'] ?? 'normal';
-                                            $pClass = 'bg-secondary';
-                                            $pIcon = 'fa-flag';
-                                            if ($p === 'high') { $pClass = 'bg-danger'; $pIcon = 'fa-triangle-exclamation'; }
-                                            elseif ($p === 'low') { $pClass = 'bg-info'; $pIcon = 'fa-arrow-down'; }
+                                        $p = $t['priority'] ?? 'normal';
+                                        // Determine bootstrap colour classes and icons based on priority.  Urgent
+                                        // tasks appear as dark red with a warning icon; high tasks are red;
+                                        // normal tasks use secondary and low tasks use info.
+                                        $pClass = 'bg-secondary';
+                                        $pIcon  = 'fa-flag';
+                                        if ($p === 'urgent') {
+                                            $pClass = 'bg-danger';
+                                            $pIcon  = 'fa-circle-exclamation';
+                                        } elseif ($p === 'high') {
+                                            $pClass = 'bg-warning text-dark';
+                                            $pIcon  = 'fa-triangle-exclamation';
+                                        } elseif ($p === 'low') {
+                                            $pClass = 'bg-info';
+                                            $pIcon  = 'fa-arrow-down';
+                                        }
                                         ?>
                                         <span class="badge <?php echo $pClass; ?> text-white" title="<?php echo e(__('priority_label')); ?>">
                                             <i class="fa-solid <?php echo $pIcon; ?>"></i> <?php echo ucfirst($p); ?>
@@ -275,9 +299,17 @@ new Chart(priorityCtx, {
                                         <?php
                                             $p = $t['priority'] ?? 'normal';
                                             $pClass = 'bg-secondary';
-                                            $pIcon = 'fa-flag';
-                                            if ($p === 'high') { $pClass = 'bg-danger'; $pIcon = 'fa-triangle-exclamation'; }
-                                            elseif ($p === 'low') { $pClass = 'bg-info'; $pIcon = 'fa-arrow-down'; }
+                                            $pIcon  = 'fa-flag';
+                                            if ($p === 'urgent') {
+                                                $pClass = 'bg-danger';
+                                                $pIcon  = 'fa-circle-exclamation';
+                                            } elseif ($p === 'high') {
+                                                $pClass = 'bg-warning text-dark';
+                                                $pIcon  = 'fa-triangle-exclamation';
+                                            } elseif ($p === 'low') {
+                                                $pClass = 'bg-info';
+                                                $pIcon  = 'fa-arrow-down';
+                                            }
                                         ?>
                                         <span class="badge <?php echo $pClass; ?> text-white" title="<?php echo e(__('priority_label')); ?>">
                                             <i class="fa-solid <?php echo $pIcon; ?>"></i> <?php echo ucfirst($p); ?>
@@ -324,9 +356,17 @@ new Chart(priorityCtx, {
                                         <?php
                                             $p = $t['priority'] ?? 'normal';
                                             $pClass = 'bg-secondary';
-                                            $pIcon = 'fa-flag';
-                                            if ($p === 'high') { $pClass = 'bg-danger'; $pIcon = 'fa-triangle-exclamation'; }
-                                            elseif ($p === 'low') { $pClass = 'bg-info'; $pIcon = 'fa-arrow-down'; }
+                                            $pIcon  = 'fa-flag';
+                                            if ($p === 'urgent') {
+                                                $pClass = 'bg-danger';
+                                                $pIcon  = 'fa-circle-exclamation';
+                                            } elseif ($p === 'high') {
+                                                $pClass = 'bg-warning text-dark';
+                                                $pIcon  = 'fa-triangle-exclamation';
+                                            } elseif ($p === 'low') {
+                                                $pClass = 'bg-info';
+                                                $pIcon  = 'fa-arrow-down';
+                                            }
                                         ?>
                                         <span class="badge <?php echo $pClass; ?> text-white" title="<?php echo e(__('priority_label')); ?>">
                                             <i class="fa-solid <?php echo $pIcon; ?>"></i> <?php echo ucfirst($p); ?>
@@ -370,9 +410,17 @@ new Chart(priorityCtx, {
                                         <?php
                                             $p = $t['priority'] ?? 'normal';
                                             $pClass = 'bg-secondary';
-                                            $pIcon = 'fa-flag';
-                                            if ($p === 'high') { $pClass = 'bg-danger'; $pIcon = 'fa-triangle-exclamation'; }
-                                            elseif ($p === 'low') { $pClass = 'bg-info'; $pIcon = 'fa-arrow-down'; }
+                                            $pIcon  = 'fa-flag';
+                                            if ($p === 'urgent') {
+                                                $pClass = 'bg-danger';
+                                                $pIcon  = 'fa-circle-exclamation';
+                                            } elseif ($p === 'high') {
+                                                $pClass = 'bg-warning text-dark';
+                                                $pIcon  = 'fa-triangle-exclamation';
+                                            } elseif ($p === 'low') {
+                                                $pClass = 'bg-info';
+                                                $pIcon  = 'fa-arrow-down';
+                                            }
                                         ?>
                                         <span class="badge <?php echo $pClass; ?> text-white" title="<?php echo e(__('priority_label')); ?>">
                                             <i class="fa-solid <?php echo $pIcon; ?>"></i> <?php echo ucfirst($p); ?>

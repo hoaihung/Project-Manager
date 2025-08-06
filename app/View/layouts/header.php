@@ -185,7 +185,7 @@
             $sidebarProjects = [];
         }
         ?>
-        <aside class="sidebar" style="width:220px; background-color: var(--surface); border-right:1px solid var(--border); padding:1rem 0.5rem;">
+        <aside class="sidebar<?php echo (!empty($_SESSION['sidebar_collapsed']) ? ' collapsed' : ''); ?>" style="width:220px; min-width:180px; background-color: var(--surface); border-right:1px solid var(--border); padding:1rem 0.5rem;">
             <div class="sidebar-heading" style="font-weight:600; margin-bottom:0.5rem; padding-left:0.75rem;">
                 <?php echo __('navigation') ?? 'Navigation'; ?>
             </div>
@@ -196,14 +196,36 @@
                 <a href="index.php?controller=project" class="sidebar-link" style="display:block; padding:0.5rem 0.75rem; border-radius:0.375rem; margin-bottom:0.5rem; color:var(--text);">
                     <?php echo __('projects'); ?>
                 </a>
+                <!-- Top-level notes link: view all accessible notes (global/project/task) -->
+                <a href="index.php?controller=note" class="sidebar-link" style="display:block; padding:0.5rem 0.75rem; border-radius:0.375rem; margin-bottom:0.5rem; color:var(--text);">
+                    <?php echo __('notes') ?? 'Notes'; ?>
+                </a>
                 <?php if (!empty($sidebarProjects)): ?>
                     <div class="sidebar-heading" style="font-weight:600; margin-top:0.5rem; margin-bottom:0.25rem; padding-left:0.75rem; font-size:0.9rem;">
                         <?php echo __('my_projects') ?? 'My Projects'; ?>
                     </div>
                     <?php foreach ($sidebarProjects as $sp): ?>
-                        <a href="index.php?controller=task&project_id=<?php echo e($sp['id']); ?>&view=kanban" class="sidebar-link" style="display:block; padding:0.4rem 0.75rem; border-radius:0.375rem; margin-bottom:0.15rem; font-size:0.8rem; color:var(--text);">
-                            <?php echo e($sp['name']); ?>
-                        </a>
+                        <div class="sidebar-project" style="margin-bottom:0.25rem;">
+                            <!-- Project name links to board view -->
+                            <a href="index.php?controller=task&project_id=<?php echo e($sp['id']); ?>&view=kanban" class="sidebar-link" style="display:block; padding:0.4rem 0.75rem; border-radius:0.375rem; font-size:0.8rem; color:var(--text);">
+                                <?php echo e($sp['name']); ?>
+                            </a>
+                            <!-- Sublinks for board/list/calendar/notes -->
+                            <div class="sidebar-sublinks" style="margin-left:1rem;">
+                                <a href="index.php?controller=task&project_id=<?php echo e($sp['id']); ?>&view=kanban" class="sidebar-link" style="display:block; padding:0.2rem 0.75rem; border-radius:0.375rem; font-size:0.75rem; color:var(--text);">
+                                    <?php echo __('board'); ?>
+                                </a>
+                                <a href="index.php?controller=task&project_id=<?php echo e($sp['id']); ?>&view=list" class="sidebar-link" style="display:block; padding:0.2rem 0.75rem; border-radius:0.375rem; font-size:0.75rem; color:var(--text);">
+                                    <?php echo __('list'); ?>
+                                </a>
+                                <a href="index.php?controller=task&project_id=<?php echo e($sp['id']); ?>&view=calendar" class="sidebar-link" style="display:block; padding:0.2rem 0.75rem; border-radius:0.375rem; font-size:0.75rem; color:var(--text);">
+                                    <?php echo __('calendar'); ?>
+                                </a>
+                                <a href="index.php?controller=note&project_id=<?php echo e($sp['id']); ?>" class="sidebar-link" style="display:block; padding:0.2rem 0.75rem; border-radius:0.375rem; font-size:0.75rem; color:var(--text);">
+                                    <?php echo __('notes'); ?>
+                                </a>
+                            </div>
+                        </div>
                     <?php endforeach; ?>
                 <?php endif; ?>
             </nav>

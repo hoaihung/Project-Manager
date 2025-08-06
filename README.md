@@ -12,6 +12,17 @@ Một ứng dụng web quản lý dự án và công việc dành cho các nhóm
 * **Đăng nhập/đăng xuất:** xác thực bằng username/password. Mặc định tài khoản `admin`/`admin123` được tạo sẵn sau khi import database.
 * **Nhật ký (Audit Log):** lưu trữ các thao tác quan trọng (có thể mở rộng sau này).
 
+### Tính năng mới trong phiên bản 3.7
+
+Phiên bản 3.7 bổ sung một số tính năng giúp quản lý thông tin và tài liệu kèm theo công việc linh hoạt hơn:
+
+* **Module ghi chú (Notes):** cho phép tạo các ghi chú độc lập (global), ghi chú gắn với dự án hoặc gắn với các công việc cụ thể. Ghi chú hỗ trợ định dạng Markdown (in đậm, nghiêng, liên kết, checklist) và có thể liên kết với nhiều công việc. Người dùng được gán vào một công việc cũng có quyền xem các ghi chú liên kết với công việc đó. Chỉ người tạo ghi chú và admin mới có quyền sửa/xóa ghi chú. Người dùng có thể được cấp quyền “xem mọi ghi chú” (`view_any_note`) để truy cập cả những ghi chú không thuộc dự án của mình.
+* **Liên kết tài liệu:** mỗi công việc có thể lưu nhiều liên kết tới các tài liệu bên ngoài như Google Docs, Sheets… Liên kết được hiển thị dưới dạng biểu tượng + tên và mở trong tab mới khi nhấn.
+* **Checklist cho công việc:** hỗ trợ tạo danh sách các bước nhỏ cần thực hiện trong mỗi công việc. Mỗi mục checklist có thể đánh dấu hoàn thành riêng và được sắp xếp.
+* **Mức ưu tiên “urgent”:** bên cạnh các mức “low”, “medium”, “high”, công việc có thể gắn mức ưu tiên “urgent” với màu sắc và biểu tượng riêng trong dashboard.
+* **Sidebar mới:** thanh bên hiển thị danh sách dự án của bạn, kèm theo các liên kết con (Board, List, Calendar, Notes). Ngoài ra có thêm liên kết “Notes” ở cấp cao để truy cập nhanh danh sách tất cả ghi chú bạn có quyền xem (bao gồm ghi chú toàn cục, ghi chú dự án và ghi chú gắn với công việc).
+* **Tùy biến quyền xem ghi chú:** thông qua trường `view_any_note` trong bảng `settings`, bạn có thể cho phép một người dùng được xem tất cả ghi chú (kể cả các ghi chú không thuộc dự án mà họ tham gia). Mặc định quyền này tắt đối với member.
+
 ## Cấu trúc thư mục
 
 ```
@@ -47,6 +58,14 @@ project_mvc/
    Tài khoản admin mặc định: `admin`/`admin123`. Hãy đổi mật khẩu ngay sau lần đăng nhập đầu tiên.
 
 3. **Cấu hình kết nối DB:** mở file `config/config.php` và chỉnh sửa thông tin `db` (`host`, `name`, `user`, `pass`) phù hợp với môi trường của bạn.
+
+4. **Cập nhật DB từ phiên bản trước:** nếu bạn đã cài đặt phiên bản cũ (v3.5), hãy chạy script `sql/update_3.7.sql` trước khi nâng cấp code. Script này tạo các bảng `notes`, `note_task`, `task_links`, `checklist_items` và bổ sung trường quyền `view_any_note` vào file settings. Trong MySQL CLI:
+
+   ```sql
+   SOURCE /đường/dẫn/tới/project_mvc/sql/update_3.7.sql;
+   ```
+
+   Sau khi chạy script, bạn có thể cấu hình quyền `view_any_note` thông qua bảng `settings` hoặc qua giao diện admin (phần chỉnh sửa quyền người dùng).
 
 4. **Khởi chạy ứng dụng:** bạn có thể sử dụng PHP built‑in server trong môi trường phát triển:
 

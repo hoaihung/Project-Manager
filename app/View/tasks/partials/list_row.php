@@ -15,10 +15,21 @@
     $overdueList = (!empty($task['due_date']) && $task['due_date'] < $nowDate && $task['status'] !== 'done');
     $dueSoonList = (!empty($task['due_date']) && $task['due_date'] >= $nowDate && $task['due_date'] <= date('Y-m-d', strtotime('+3 days')) && $task['status'] !== 'done');
     $rowStyle = '';
-    if ($overdueList) {
-        $rowStyle = 'background-color:' . 'var(--status-overdue);';
-    } elseif ($dueSoonList) {
-        $rowStyle = 'background-color:' . 'var(--status-due-soon);';
+    // Build row style string based solely on this task's due status (no inheritance).
+    // If the task is done, always keep a white background.  Otherwise highlight
+    // overdue or due soon tasks using pastel colours.
+    if ($task['status'] !== 'done') {
+        if ($overdueList) {
+            $rowStyle .= 'background-color: var(--status-overdue);';
+        } elseif ($dueSoonList) {
+            $rowStyle .= 'background-color: var(--status-due-soon);';
+        }
+    }
+    // Add a thick border for completed tasks that still have incomplete subtasks
+    $hasUndoneSubtasks = (!empty($task['subtask_total']) && $task['subtask_done'] < $task['subtask_total']);
+    if ($task['status'] === 'done' && $hasUndoneSubtasks) {
+        // Use an inset box-shadow instead of border to avoid collapsing
+        $rowStyle .= 'box-shadow: 0 0 0 2px var(--danger) inset;';
     }
 ?>
 <tr style="<?php echo $rowStyle; ?>">
@@ -27,6 +38,13 @@
             <a href="index.php?controller=task&action=edit&id=<?php echo e($task['id']); ?>&view=list" style="margin-right:0.25rem;">
                 <?php echo e($task['name']); ?>
             </a>
+            <?php
+                // Lazy load models to count notes and links for this task
+                $noteModelTmp = new \app\Model\Note();
+                $linkModelTmp = new \app\Model\TaskLink();
+                $noteCount = count($noteModelTmp->getByTask($task['id']));
+                $linkCount = count($linkModelTmp->getByTask($task['id']));
+            ?>
             <?php if (!empty($task['description'])): ?>
                 <span title="<?php echo e(__('description')); ?>" style="margin-right:0.15rem;"><i class="fa-solid fa-align-left"></i></span>
             <?php endif; ?>
@@ -35,6 +53,28 @@
             <?php endif; ?>
             <?php if (!empty($task['subtask_total']) && $task['subtask_total'] > 0): ?>
                 <span title="<?php echo e(__('subtasks')); ?>" style="margin-right:0.15rem;"><i class="fa-solid fa-layer-group"></i> <?php echo e($task['subtask_done']); ?>/<?php echo e($task['subtask_total']); ?></span>
+            <?php endif; ?>
+            <?php if ($noteCount > 0): ?>
+                <span title="<?php echo e(__('notes')); ?>" style="margin-right:0.15rem;"><i class="fa-solid fa-note-sticky"></i> (<?php echo $noteCount; ?>)</span>
+            <?php endif; ?>
+            <?php if ($linkCount > 0): ?>
+                <span title="<?php echo e(__('links')); ?>" style="margin-right:0.15rem;">
+                    <?php
+                        // Determine icon: use Google Docs/Sheets icons for docs and sheets; default link icon otherwise
+                        $firstLink = $linkModelTmp->getByTask($task['id']);
+                        $iconHtml = '<i class="fa-solid fa-link"></i>';
+                        if (!empty($firstLink)) {
+                            $url = $firstLink[0]['url'];
+                            if (strpos($url, 'docs.google') !== false) {
+                                $iconHtml = '<i class="fa-brands fa-google" style="color:#4285F4;"></i>';
+                            } elseif (strpos($url, 'sheets.google') !== false) {
+                                $iconHtml = '<i class="fa-brands fa-google" style="color:#0F9D58;"></i>';
+                            }
+                        }
+                        echo $iconHtml;
+                    ?>
+                    (<?php echo $linkCount; ?>)
+                </span>
             <?php endif; ?>
         </div>
         <?php if (!empty($task['assignees'])): ?>

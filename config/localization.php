@@ -39,6 +39,8 @@ return [
         'actions' => 'Thao tác',
         'save' => 'Lưu',
         'cancel' => 'Hủy',
+    // Back to parent task
+    'back_to_parent_task' => 'Quay lại Task cha',
         'delete' => 'Xóa',
         'back' => 'Quay lại',
         'create_task' => 'Tạo công việc',
@@ -198,6 +200,45 @@ return [
         'project_members' => 'Thành viên dự án',
         'all_users' => 'Tất cả người dùng',
         'select_members_hint' => 'Chọn người dùng được tham gia dự án. Nếu chọn Tất cả, tất cả người dùng (ngoại trừ admin) sẽ được thêm.',
+
+        // Notes module
+        'notes' => 'Ghi chú',
+        'note' => 'Ghi chú',
+        'create_note' => 'Tạo ghi chú',
+        'edit_note' => 'Chỉnh sửa ghi chú',
+        'title' => 'Tiêu đề',
+        'content' => 'Nội dung',
+        'author' => 'Tác giả',
+        'linked_tasks' => 'Công việc liên kết',
+        'view' => 'Xem',
+        'optional' => 'Không bắt buộc',
+        'select_tasks_hint' => 'Chọn các công việc liên quan (nếu có).',
+        'select_project_for_tasks' => 'Chọn một dự án để hiển thị các công việc.',
+        // Renamed from global to private since only author and admin can view
+        'global' => 'Riêng tư',
+        'scope' => 'Phạm vi',
+        'no_notes' => 'Không có ghi chú.',
+        'no_links' => 'Không có liên kết.',
+        'confirm_delete_note' => 'Bạn có chắc muốn xóa ghi chú này?',
+
+        // Dates
+        'created_at' => 'Ngày tạo',
+
+        // Note attachment UI
+        'select_note' => 'Chọn ghi chú',
+        'attach_note' => 'Gắn ghi chú',
+        'select_note_placeholder' => 'Chọn ghi chú để liên kết',
+        'existing_notes' => 'Ghi chú có sẵn',
+        'add' => 'Thêm',
+        // Checklist and links
+        'checklist' => 'Danh sách kiểm',
+        'add_checklist_item' => 'Thêm mục checklist',
+        'links' => 'Liên kết',
+        'link_name' => 'Tên liên kết',
+        'link_url' => 'URL liên kết',
+        'add_link' => 'Thêm liên kết',
+        'add_note' => 'Thêm ghi chú',
+        'no_notes_for_task' => 'Không có ghi chú nào cho công việc này.',
         'member_count' => 'Số thành viên',
 
         // Tag page
@@ -283,6 +324,7 @@ return [
         'actions' => 'Actions',
         'save' => 'Save',
         'cancel' => 'Cancel',
+        'back_to_parent_task' => 'Back to parent task',
         'delete' => 'Delete',
         'back' => 'Back',
         'create_task' => 'Create Task',
@@ -500,5 +542,43 @@ return [
         'delete_task_prompt_with_subtasks' => 'This task has :count subtasks. Deleting will remove all subtasks. Are you sure?',
         'confirm_delete_option' => 'I confirm deleting this task',
         'delete_not_confirmed' => 'You must confirm deletion before proceeding',
+        // Notes module
+        'notes' => 'Notes',
+        'note' => 'Note',
+        'create_note' => 'Create Note',
+        'edit_note' => 'Edit Note',
+        'title' => 'Title',
+        'content' => 'Content',
+        'author' => 'Author',
+        'linked_tasks' => 'Linked tasks',
+        'view' => 'View',
+        'optional' => 'Optional',
+        'select_tasks_hint' => 'Select related tasks (if any).',
+        'select_project_for_tasks' => 'Choose a project to display tasks.',
+        // Renamed from global to private since only author and admin can view
+        'global' => 'Private',
+        'scope' => 'Scope',
+        'no_notes' => 'No notes.',
+        'no_links' => 'No links.',
+        'confirm_delete_note' => 'Are you sure you want to delete this note?',
+
+        // Dates
+        'created_at' => 'Created at',
+
+        // Note attachment UI
+        'select_note' => 'Select note',
+        'attach_note' => 'Attach note',
+        'select_note_placeholder' => 'Select a note to attach',
+        'existing_notes' => 'Existing notes',
+        'add' => 'Add',
+        // Checklist and links
+        'checklist' => 'Checklist',
+        'add_checklist_item' => 'Add checklist item',
+        'links' => 'Links',
+        'link_name' => 'Link name',
+        'link_url' => 'Link URL',
+        'add_link' => 'Add link',
+        'add_note' => 'Add note',
+        'no_notes_for_task' => 'No notes for this task.',
     ],
 ];

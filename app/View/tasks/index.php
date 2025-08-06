@@ -42,7 +42,7 @@
     <a href="index.php?controller=task&project_id=<?php echo e($project['id']); ?>&view=list" class="btn <?php echo $view==='list' ? 'btn-secondary' : 'btn-primary'; ?>"><?php echo __('list'); ?></a>
     <a href="index.php?controller=task&project_id=<?php echo e($project['id']); ?>&view=calendar" class="btn <?php echo $view==='calendar' ? 'btn-secondary' : 'btn-primary'; ?>"><?php echo __('calendar'); ?></a>
     <a href="index.php?controller=task&project_id=<?php echo e($project['id']); ?>&view=gantt" class="btn <?php echo $view==='gantt' ? 'btn-secondary' : 'btn-primary'; ?>"><?php echo __('gantt'); ?></a>
-    <a href="index.php?controller=task&project_id=<?php echo e($project['id']); ?>&view=flow" class="btn <?php echo $view==='flow' ? 'btn-secondary' : 'btn-primary'; ?>"><?php echo __('flow'); ?></a>
+    <!-- Flow view removed -->
     <?php if ($view === 'kanban'): ?>
         <?php
             // Determine current group mode. If a group parameter is present in
@@ -183,24 +183,27 @@
             <div class="kanban-items" style="padding:0.5rem; flex-grow:1;">
                 <?php foreach ($columnTasks as $task): ?>
                     <?php
-                        // Determine styling for tasks: warning if done but subtasks incomplete, overdue and due soon
-                        $warningTask = ($task['status'] === 'done' && $task['subtask_total'] > $task['subtask_done']);
-                        $nowDate    = date('Y-m-d');
-                        // Only flag overdue or due soon if task is not completed
-                        $overdue    = (!empty($task['due_date']) && $task['due_date'] < $nowDate && $task['status'] !== 'done');
-                        $dueSoon    = (!empty($task['due_date']) && $task['due_date'] >= $nowDate && $task['due_date'] <= date('Y-m-d', strtotime('+3 days')) && $task['status'] !== 'done');
+                        // Determine styling for tasks: each task's colour is independent
                         $itemStyle = '';
-                        if ($warningTask) {
-                            $itemStyle = 'border:2px solid var(--danger);';
-                        } elseif ($overdue) {
-                            // pastel red for overdue
-                            $itemStyle = 'border:2px solid #b91c1c; background-color: var(--status-overdue);';
-                        } elseif ($dueSoon) {
-                            // pastel yellow for upcoming
-                            $itemStyle = 'border:2px solid #ca8a04; background-color: var(--status-due-soon);';
+                        $nowDate = date('Y-m-d');
+                        $hasUndoneSubtasks = (!empty($task['subtask_total']) && $task['subtask_done'] < $task['subtask_total']);
+                        // If the task is not done, set background colour based on its own due date
+                        if ($task['status'] !== 'done') {
+                            $overdue = (!empty($task['due_date']) && $task['due_date'] < $nowDate);
+                            $dueSoon = (!empty($task['due_date']) && $task['due_date'] >= $nowDate && $task['due_date'] <= date('Y-m-d', strtotime('+3 days')));
+                            if ($overdue) {
+                                $itemStyle .= 'background-color: var(--status-overdue);';
+                            } elseif ($dueSoon) {
+                                $itemStyle .= 'background-color: var(--status-due-soon);';
+                            }
+                        }
+                        // If the task is done but has incomplete subtasks, add a thick border
+                        if ($task['status'] === 'done' && $hasUndoneSubtasks) {
+                            // Add a visible border using fixed colour (rgb(185,28,28)) to highlight completed tasks with pending subtasks
+                            $itemStyle .= 'border: 2px solid rgb(185, 28, 28);';
                         }
                     ?>
-                    <div class="kanban-item" data-id="<?php echo e($task['id']); ?>" data-subtask="<?php echo !empty($task['is_subtask']) ? 'true' : 'false'; ?>" data-due-date="<?php echo e($task['due_date']); ?>" style="<?php echo $itemStyle; ?>">
+                    <div class="kanban-item" data-id="<?php echo e($task['id']); ?>" data-subtask="<?php echo !empty($task['is_subtask']) ? 'true' : 'false'; ?>" data-due-date="<?php echo e($task['due_date']); ?>"<?php if ($task['status'] === 'done' && (!empty($task['subtask_total']) && $task['subtask_done'] < $task['subtask_total'])): ?> data-warning="1"<?php endif; ?> style="<?php echo $itemStyle; ?>">
                         <!-- Task name line -->
                         <div style="display:flex; align-items:center; justify-content:space-between;">
                             <div style="display:flex; align-items:center; gap:0.25rem;">
@@ -248,6 +251,35 @@
                             <?php endif; ?>
                             <?php if (!empty($task['attachment_count']) && $task['attachment_count'] > 0): ?>
                                 <span title="<?php echo e(__('attachments')); ?>"><i class="fa-solid fa-paperclip"></i> <?php echo e($task['attachment_count']); ?></span>
+                            <?php endif; ?>
+
+                            <?php
+                                // Lazy load note and link counts for Kanban item
+                                $noteModelTmp = new \app\Model\Note();
+                                $linkModelTmp = new \app\Model\TaskLink();
+                                $noteCount = count($noteModelTmp->getByTask($task['id']));
+                                $linkCount = count($linkModelTmp->getByTask($task['id']));
+                            ?>
+                            <?php if ($noteCount > 0): ?>
+                                <span title="<?php echo e(__('notes')); ?>"><i class="fa-solid fa-note-sticky"></i> <?php echo $noteCount; ?></span>
+                            <?php endif; ?>
+                            <?php if ($linkCount > 0): ?>
+                                <span title="<?php echo e(__('links')); ?>">
+                                    <?php
+                                        $firstLink = $linkModelTmp->getByTask($task['id']);
+                                        $linkIcon = '<i class="fa-solid fa-link"></i>';
+                                        if (!empty($firstLink)) {
+                                            $url = $firstLink[0]['url'];
+                                            if (strpos($url, 'docs.google') !== false) {
+                                                $linkIcon = '<i class="fa-brands fa-google" style="color:#4285F4;"></i>';
+                                            } elseif (strpos($url, 'sheets.google') !== false) {
+                                                $linkIcon = '<i class="fa-brands fa-google" style="color:#0F9D58;"></i>';
+                                            }
+                                        }
+                                        echo $linkIcon;
+                                    ?>
+                                    <?php echo $linkCount; ?>
+                                </span>
                             <?php endif; ?>
                             <?php if (!empty($task['subtask_total']) && $task['subtask_total'] > 0): ?>
                                 <span title="<?php echo e(__('subtasks')); ?>"><i class="fa-solid fa-layer-group"></i> <?php echo e($task['subtask_done']); ?>/<?php echo e($task['subtask_total']); ?></span>
@@ -304,10 +336,17 @@
                             <div class="subtask-list" data-parent-id="<?php echo e($task['id']); ?>" style="margin-top:0.5rem; margin-left:0.5rem; <?php echo $subListStyle; ?>">
                                 <?php foreach ($task['subtasks'] as $sub): ?>
                                     <?php
-                                        $subWarn = ($task['status'] === 'done' && $task['subtask_total'] > $task['subtask_done'] && $sub['status'] !== 'done');
+                                        // Determine subtask style based solely on its own status/due date. Do not inherit
                                         $subStyle = 'background-color: var(--surface); border:1px solid var(--border);';
-                                        if ($subWarn) {
-                                            $subStyle = 'background-color:#fee2e2; border:1px solid #fecaca;';
+                                        if ($sub['status'] !== 'done') {
+                                            $now = date('Y-m-d');
+                                            if (!empty($sub['due_date']) && $sub['due_date'] < $now) {
+                                                // Overdue subtask
+                                                $subStyle = 'background-color: var(--status-overdue); border:1px solid #fecaca;';
+                                            } elseif (!empty($sub['due_date']) && $sub['due_date'] >= $now && $sub['due_date'] <= date('Y-m-d', strtotime('+3 days'))) {
+                                                // Due soon subtask
+                                                $subStyle = 'background-color: var(--status-due-soon); border:1px solid #fef08a;';
+                                            }
                                         }
                                         $subPriority = $sub['priority'] ?? 'normal';
                                         $subPrClass = 'priority-normal';

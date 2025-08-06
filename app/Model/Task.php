@@ -304,10 +304,19 @@ class Task extends Model
     {
         $stmt = $this->query("SELECT priority, COUNT(*) AS cnt FROM tasks WHERE status <> 'deleted' GROUP BY priority");
         $rows = $stmt->fetchAll();
-        $counts = ['high' => 0, 'normal' => 0, 'low' => 0];
+        // Initialise counts for each known priority.  We include the new
+        // "urgent" level as well as existing high/normal/low priorities.  If
+        // additional priorities are introduced in the database they can be
+        // added here to ensure they appear in the dashboard charts.
+        $counts = ['urgent' => 0, 'high' => 0, 'normal' => 0, 'low' => 0];
         foreach ($rows as $row) {
             $priority = $row['priority'] ?? 'normal';
-            $counts[$priority] = (int)$row['cnt'];
+            // Unknown priorities will be ignored to avoid polluting the
+            // results.  Only update counts if the key exists in our
+            // pre‑initialised array.  Cast to int for safety.
+            if (array_key_exists($priority, $counts)) {
+                $counts[$priority] = (int)$row['cnt'];
+            }
         }
         return $counts;
     }
@@ -357,10 +366,14 @@ class Task extends Model
             ['pid' => $projectId]
         );
         $rows = $stmt->fetchAll();
-        $counts = ['high' => 0, 'normal' => 0, 'low' => 0];
+        // Predefine counts for each priority including the new urgent level.  If
+        // the database contains other priorities they will be ignored.
+        $counts = ['urgent' => 0, 'high' => 0, 'normal' => 0, 'low' => 0];
         foreach ($rows as $row) {
             $priority = $row['priority'] ?? 'normal';
-            $counts[$priority] = (int)$row['cnt'];
+            if (array_key_exists($priority, $counts)) {
+                $counts[$priority] = (int)$row['cnt'];
+            }
         }
         return $counts;
     }

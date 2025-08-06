@@ -164,3 +164,55 @@ INSERT INTO `users` (`username`, `password`, `full_name`, `email`, `role_id`, `c
   ('admin', 'admin123', 'Administrator', 'admin@example.com', 1, NOW());
 
 SET FOREIGN_KEY_CHECKS = 1;
+
+-- ------------------------------------------------------------------
+-- Additional tables for notes, links and task checklists
+-- These tables extend the core schema to support the new features
+-- requested by the client.  Notes allow arbitrary markdown‑enabled
+-- content to be created independently of tasks and projects.  A note
+-- may be linked to multiple tasks via the note_task pivot.  Task
+-- links store references to external documents such as spreadsheets
+-- or documents.  Checklist items provide fine‑grained subtasks for a
+-- single task and can be marked as completed independently.
+
+DROP TABLE IF EXISTS `notes`;
+CREATE TABLE `notes` (
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `project_id` INT UNSIGNED NULL,
+  `user_id` INT UNSIGNED NOT NULL,
+  `title` VARCHAR(255) DEFAULT NULL,
+  `content` TEXT NOT NULL,
+  `created_at` DATETIME NOT NULL,
+  `updated_at` DATETIME DEFAULT NULL,
+  CONSTRAINT `fk_notes_project` FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_notes_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+DROP TABLE IF EXISTS `note_task`;
+CREATE TABLE `note_task` (
+  `note_id` INT UNSIGNED NOT NULL,
+  `task_id` INT UNSIGNED NOT NULL,
+  PRIMARY KEY (`note_id`, `task_id`),
+  CONSTRAINT `fk_note_task_note` FOREIGN KEY (`note_id`) REFERENCES `notes` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_note_task_task` FOREIGN KEY (`task_id`) REFERENCES `tasks` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+DROP TABLE IF EXISTS `task_links`;
+CREATE TABLE `task_links` (
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `task_id` INT UNSIGNED NOT NULL,
+  `name` VARCHAR(255) DEFAULT NULL,
+  `url` VARCHAR(1024) NOT NULL,
+  `created_at` DATETIME NOT NULL,
+  CONSTRAINT `fk_task_links_task` FOREIGN KEY (`task_id`) REFERENCES `tasks` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+DROP TABLE IF EXISTS `checklist_items`;
+CREATE TABLE `checklist_items` (
+  `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `task_id` INT UNSIGNED NOT NULL,
+  `content` VARCHAR(255) NOT NULL,
+  `is_done` TINYINT(1) NOT NULL DEFAULT 0,
+  `sort_order` INT UNSIGNED NOT NULL DEFAULT 1,
+  CONSTRAINT `fk_checklist_task` FOREIGN KEY (`task_id`) REFERENCES `tasks` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
