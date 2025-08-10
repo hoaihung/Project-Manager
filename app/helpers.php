@@ -316,9 +316,19 @@ if (!function_exists('markdown_to_html')) {
 if (!function_exists('linkify')) {
     function linkify(?string $text): string
     {
+        // Convert plain URLs in the given text into clickable links with a custom
+        // label.  The anchor text will be rendered as "(liên kết) [tên miền]"
+        // where the domain is extracted from the URL.  For example, the URL
+        // "https://www.example.com/path" becomes "(liên kết) [www.example.com]".
         $text = $text ?? '';
         $escaped = htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
-        return preg_replace('/(https?:\/\/[^\s<]+)/', '<a href="$1" target="_blank" rel="noopener">$1</a>', $escaped);
+        return preg_replace_callback('/(https?:\/\/[^\s<]+)/', function ($matches) {
+            $url = $matches[1];
+            // Remove protocol and extract domain before first slash
+            $domain = preg_replace('#^https?://#', '', $url);
+            $domain = explode('/', $domain)[0];
+            return '<a href="' . $url . '" target="_blank" rel="noopener">(liên kết) [' . $domain . ']</a>';
+        }, $escaped);
     }
 }
 

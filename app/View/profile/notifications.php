@@ -2,48 +2,99 @@
 
 <?php
 // $notifications is passed from ProfileController::notifications()
-$overdue   = $notifications['overdue'] ?? [];
-$dueSoon   = $notifications['due_soon'] ?? [];
+// Extract each category for clarity
+$overdue        = $notifications['overdue'] ?? [];
+$dueSoon        = $notifications['due_soon'] ?? [];
+$dueToday       = $notifications['due_today'] ?? [];
+$highPriority   = $notifications['high_priority'] ?? [];
 // Overlap groups contain arrays with 'tasks' and 'range'
-$overlapGroups = $notifications['overlapGroups'] ?? [];
-function renderTable($tasks) {
+$overlapGroups  = $notifications['overlapGroups'] ?? [];
+
+/**
+ * Render a list of tasks with icons and status labels.  When the input list is empty
+ * this function prints a paragraph indicating there are no tasks.
+ *
+ * Each list item displays:
+ *  - Task name (link to edit)
+ *  - Optional project name in muted text
+ *  - A row of icons with due date, priority, attachments count, comment count and subtask progress
+ *  - A coloured status label on the right
+ *
+ * @param array $tasks
+ */
+function renderTaskList(array $tasks)
+{
     if (empty($tasks)) {
         echo '<p>' . __('no_tasks') . '.</p>';
         return;
     }
-    echo '<table class="table table-bordered table-sm">';
-    echo '<thead><tr>';
-    echo '<th>' . __('task_name_col') . '</th>';
-    echo '<th>' . __('project_name_col') . '</th>';
-    echo '<th>' . __('start_date_col') . '</th>';
-    echo '<th>' . __('due_date') . '</th>';
-    echo '<th>' . __('status') . '</th>';
-    echo '</tr></thead><tbody>';
+    echo '<ul class="list-unstyled">';
     foreach ($tasks as $t) {
-        echo '<tr>';
-        echo '<td><a href="index.php?controller=task&action=edit&id=' . e($t['id']) . '">' . e($t['name']) . '</a></td>';
-        echo '<td>' . e($t['project_name'] ?? '') . '</td>';
-        echo '<td>' . e($t['start_date'] ?? '') . '</td>';
-        echo '<td>' . e($t['due_date'] ?? '') . '</td>';
-        echo '<td>' . __( $t['status'] ) . '</td>';
-        echo '</tr>';
+        echo '<li class="mb-2 d-flex justify-content-between align-items-start">';
+        // Left content: name, project, icons
+        echo '<div>';
+        echo '<a href="index.php?controller=task&action=edit&id=' . e($t['id']) . '" class="fw-semibold text-decoration-none">' . e($t['name']) . '</a>';
+        if (!empty($t['project_name'])) {
+            echo ' <small class="text-muted">– ' . e($t['project_name']) . '</small>';
+        }
+        echo '<div class="small text-muted mt-1">';
+        $statusKey = $t['status'] ?? '';
+        echo '<span class="status-label status-' . e($statusKey) . '" style="white-space:nowrap; margin-left:0.5rem;">' . __( $statusKey ) . '</span> ';
+        // Due date
+        if (!empty($t['due_date'])) {
+            echo '<span><i class="fa-solid fa-calendar-day me-1"></i>' . e($t['due_date']) . '</span>';
+        }
+        // Priority
+        $pri = $t['priority'] ?? '';
+        if ($pri) {
+            echo '<span class="ms-2"><i class="fa-solid fa-flag me-1"></i>' . __( $pri ) . '</span>';
+        }
+        // Attachments
+        if (!empty($t['file_count'])) {
+            echo '<span class="ms-2"><i class="fa-solid fa-paperclip me-1"></i>' . $t['file_count'] . '</span>';
+        }
+        // Comments
+        if (!empty($t['comment_count'])) {
+            echo '<span class="ms-2"><i class="fa-solid fa-comment me-1"></i>' . $t['comment_count'] . '</span>';
+        }
+        // Subtasks
+        if (!empty($t['subtask_total'])) {
+            $done = $t['subtask_done'] ?? 0;
+            echo '<span class="ms-2"><i class="fa-solid fa-list-check me-1"></i>' . $done . '/' . $t['subtask_total'] . '</span>';
+        }
+        echo '</div>';
+        echo '</div>';
+        echo '</li>';
     }
-    echo '</tbody></table>';
+    echo '</ul>';
 }
 ?>
 
-<div class="mb-4">
-    <h3><?php echo __('overdue'); ?></h3>
-    <?php renderTable($overdue); ?>
+<!-- Wrap each category in a section card.  These custom wrappers match the
+     application’s card style while ensuring the notifications page
+     preserves its own CSS independent of Bootstrap’s card component. -->
+<div class="section-card">
+    <h3 class="mb-2"><?php echo __('overdue'); ?></h3>
+    <?php renderTaskList($overdue); ?>
 </div>
 
-<div class="mb-4">
-    <h3><?php echo __('due_soon'); ?> (3 <?php echo __('days'); ?>)</h3>
-    <?php renderTable($dueSoon); ?>
+<div class="section-card">
+    <h3 class="mb-2"><?php echo __('due_today'); ?></h3>
+    <?php renderTaskList($dueToday); ?>
 </div>
 
-<div class="mb-4">
-    <h3><?php echo __('overlap_tasks'); ?></h3>
+<div class="section-card">
+    <h3 class="mb-2"><?php echo __('due_soon'); ?> (3 <?php echo __('days'); ?>)</h3>
+    <?php renderTaskList($dueSoon); ?>
+</div>
+
+<div class="section-card">
+    <h3 class="mb-2"><?php echo __('high_priority'); ?></h3>
+    <?php renderTaskList($highPriority); ?>
+</div>
+
+<div class="section-card">
+    <h3 class="mb-2"><?php echo __('overlap_tasks'); ?></h3>
     <?php if (empty($overlapGroups)): ?>
         <p><?php echo __('no_tasks'); ?>.</p>
     <?php else: ?>
@@ -69,22 +120,7 @@ function renderTable($tasks) {
                     <?php echo __('to'); ?>
                     <span class="badge bg-secondary"><?php echo e($range[1]); ?></span>
                 </h5>
-                <ul class="list-unstyled mb-2" style="margin-left:0;">
-                    <?php foreach ($group['tasks'] as $gt): ?>
-                        <li class="mb-1">
-                            <i class="fa fa-tasks text-muted me-1"></i>
-                            <a href="index.php?controller=task&action=edit&id=<?php echo e($gt['id']); ?>" class="fw-semibold text-decoration-none">
-                                <?php echo e($gt['name']); ?>
-                            </a>
-                            <span class="small text-muted">
-                                (<?php echo e($gt['start_date'] ?? ''); ?> – <?php echo e($gt['due_date'] ?? ''); ?>)
-                            </span>
-                            <?php if (!empty($gt['project_name'])): ?>
-                                <em class="small text-muted">– <?php echo e($gt['project_name']); ?></em>
-                            <?php endif; ?>
-                        </li>
-                    <?php endforeach; ?>
-                </ul>
+                <?php renderTaskList($group['tasks']); ?>
                 <?php if (!empty($overlapDays)): ?>
                     <div class="text-muted" style="font-size:0.85rem;">
                         <?php echo __('overlap_tasks'); ?>

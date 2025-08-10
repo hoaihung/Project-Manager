@@ -419,7 +419,12 @@
 
             <div>
                 <label for="group_by" style="font-size:0.75rem; color:var(--muted);">Group by:</label><br>
-                <?php $groupBy = $_GET['group_by'] ?? ''; ?>
+                <?php
+                // Default grouping for list view.  When no group_by parameter is provided
+                // default to grouping by status so that users immediately see tasks
+                // separated into their states (bug/review, in progress, todo, done).
+                $groupBy = $_GET['group_by'] ?? 'status';
+                ?>
                 <select id="group_by" name="group_by" style="padding:0.3rem; border:1px solid var(--border); border-radius:0.25rem; font-size:0.75rem;">
                     <option value="" <?php echo $groupBy === '' ? 'selected' : ''; ?>><?php echo __('none'); ?></option>
                     <option value="status" <?php echo $groupBy === 'status' ? 'selected' : ''; ?>><?php echo __('status'); ?></option>
@@ -502,7 +507,9 @@
                         echo '<tr><td colspan="8">' . __('no_tasks') . '</td></tr>';
                     } else {
                         // Grouping and pagination
-                        $groupBy = $_GET['group_by'] ?? '';
+                        // Determine grouping key again when building the grouped list.
+                        // Default to status if the user did not explicitly choose a grouping.
+                        $groupBy = $_GET['group_by'] ?? 'status';
                         $groupedList = [];
                         if ($groupBy !== '') {
                             foreach ($list as $t) {
@@ -581,7 +588,18 @@
                             $offset = ($currentPage - 1) * $perPage;
                             $pagedKeys = array_slice($groupKeys, $offset, $perPage);
                             foreach ($pagedKeys as $key) {
-                                echo '<tr><td colspan="8" style="background-color:var(--surface); font-weight:bold;">' . e(ucfirst($key)) . '</td></tr>';
+                                // Build CSS classes for group header.  Always apply group-header.
+                                // When grouping by status, also append a status-specific class to
+                                // leverage the pastel palette defined in style.css.  Use the raw
+                                // key rather than a capitalised string to match class names.
+                                $headerClasses = 'group-header';
+                                if ($groupBy === 'status') {
+                                    $headerClasses .= ' status-' . e($key);
+                                }
+                                // Translate the group heading where possible; fall back to the
+                                // raw key if no translation exists.
+                                $heading = __($key);
+                                echo '<tr class="' . $headerClasses . '"><td colspan="8">' . $heading . '</td></tr>';
                                 foreach ($groupedList[$key] as $task) {
                                     include __DIR__ . '/partials/list_row.php';
                                 }

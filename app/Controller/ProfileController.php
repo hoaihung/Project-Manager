@@ -45,6 +45,9 @@ class ProfileController extends Controller
         $nowTs = strtotime(date('Y-m-d'));
         $ranges = [];
         foreach ($allTasks as $t) {
+            if (($t['status'] ?? '') === 'done') {
+                continue;
+            }
             $start = !empty($t['start_date']) ? strtotime($t['start_date']) : null;
             $end   = !empty($t['due_date']) ? strtotime($t['due_date']) : null;
             if ($end && $end < $nowTs) {
@@ -121,30 +124,67 @@ class ProfileController extends Controller
     {
         $this->requireLogin();
         $userId = $_SESSION['user_id'];
-        /** @var \app\Model\Task $taskModel */
-        $taskModel = $this->loadModel('Task');
+        // Load required models
+        $taskModel    = $this->loadModel('Task');
+        $fileModel    = $this->loadModel('File');
+        $commentModel = $this->loadModel('Comment');
+        // Fetch all tasks assigned to the current user.  Each task will be
+        // enriched with additional metadata (file count, comment count,
+        // subtask counts) to aid the notifications view.
         $allTasks = $taskModel->getTasksByAssignedUser($userId);
         $notifications = [
-            'overdue' => [],
-            'due_soon' => [],
-            // for overlapping tasks we will compute groups instead of a flat list
+            'overdue'       => [],
+            'due_today'     => [],
+            'due_soon'      => [],
+            'high_priority' => [],
             'overlapGroups' => [],
         ];
-        // Determine tasks with date ranges and overdue/due soon categorisation
-        $ranges = [];
-        $nowTs = strtotime(date('Y-m-d'));
+        $nowDate = date('Y-m-d');
+        $nowTs   = strtotime($nowDate);
+        $ranges  = [];
         foreach ($allTasks as $t) {
-            $start = !empty($t['start_date']) ? strtotime($t['start_date']) : null;
-            $end   = !empty($t['due_date']) ? strtotime($t['due_date']) : null;
-            if ($end && $end < $nowTs) {
-                $notifications['overdue'][] = $t;
-            } elseif ($end && $end <= strtotime('+3 days')) {
-                $notifications['due_soon'][] = $t;
+            if (($t['status'] ?? '') === 'done') {
+                continue;
             }
-            // Build ranges for overlap check (use start or end date if one is missing)
-            if ($start || $end) {
-                $s = $start ?? $end;
-                $e = $end ?? $start;
+            // Compute attachment and comment counts
+            $files    = $fileModel->getByTask($t['id']);
+            $comments = $commentModel->getByTask($t['id']);
+            $t['file_count']    = count($files);
+            $t['comment_count'] = count($comments);
+            // Compute subtask counts
+            $subtasks            = $taskModel->getSubtasks($t['id']);
+            $t['subtask_total'] = count($subtasks);
+            $t['subtask_done']  = 0;
+            foreach ($subtasks as $sub) {
+                if (($sub['status'] ?? '') === 'done') {
+                    $t['subtask_done']++;
+                }
+            }
+            // Categorise by due date
+            $due = $t['due_date'] ?? null;
+            if (!empty($due)) {
+                $dueTs = strtotime($due);
+                if ($dueTs < $nowTs) {
+                    $notifications['overdue'][] = $t;
+                } elseif ($dueTs == $nowTs) {
+                    $notifications['due_today'][] = $t;
+                } elseif ($dueTs <= strtotime('+3 days', $nowTs)) {
+                    $notifications['due_soon'][] = $t;
+                }
+            }
+            // Categorise by priority
+            $priority = $t['priority'] ?? '';
+            if (in_array($priority, ['urgent', 'high'])) {
+                $notifications['high_priority'][] = $t;
+            }
+            // Build date range for overlap detection.  Use either the start
+            // date or the due date (whichever exists) for both ends of the
+            // range when only one is provided.  If both exist, ensure s <= e.
+            $startTs = !empty($t['start_date']) ? strtotime($t['start_date']) : null;
+            $endTs   = !empty($t['due_date']) ? strtotime($t['due_date']) : null;
+            if ($startTs || $endTs) {
+                $s = $startTs ?? $endTs;
+                $e = $endTs   ?? $startTs;
                 if ($s > $e) { $tmp = $s; $s = $e; $e = $tmp; }
                 $ranges[] = ['index' => count($ranges), 'task' => $t, 's' => $s, 'e' => $e];
             }
@@ -154,8 +194,8 @@ class ProfileController extends Controller
         $adj = array_fill(0, $n, []);
         for ($i = 0; $i < $n; $i++) {
             for ($j = $i + 1; $j < $n; $j++) {
+                // Two tasks overlap if their date ranges intersect
                 if ($ranges[$i]['e'] >= $ranges[$j]['s'] && $ranges[$j]['e'] >= $ranges[$i]['s']) {
-                    // Overlap
                     $adj[$i][] = $j;
                     $adj[$j][] = $i;
                 }
@@ -165,7 +205,6 @@ class ProfileController extends Controller
         $visited = array_fill(0, $n, false);
         for ($i = 0; $i < $n; $i++) {
             if (!$visited[$i]) {
-                // Start new component
                 $stack = [$i];
                 $visited[$i] = true;
                 $componentIndices = [];
@@ -174,7 +213,7 @@ class ProfileController extends Controller
                 while ($stack) {
                     $cur = array_pop($stack);
                     $componentIndices[] = $cur;
-                    // update intersection range for overlap (max of start, min of end)
+                    // Update the intersection range boundaries
                     if ($ranges[$cur]['s'] > $compStart) { $compStart = $ranges[$cur]['s']; }
                     if ($ranges[$cur]['e'] < $compEnd) { $compEnd = $ranges[$cur]['e']; }
                     foreach ($adj[$cur] as $nbr) {
@@ -184,13 +223,12 @@ class ProfileController extends Controller
                         }
                     }
                 }
-                // Only consider components with more than one task as overlapping groups
+                // Only consider overlapping groups when there are at least two tasks
                 if (count($componentIndices) > 1) {
                     $groupTasks = [];
                     foreach ($componentIndices as $idx) {
                         $groupTasks[] = $ranges[$idx]['task'];
                     }
-                    // Format range back to Y-m-d
                     $overlapStart = date('Y-m-d', $compStart);
                     $overlapEnd   = date('Y-m-d', $compEnd);
                     $notifications['overlapGroups'][] = [

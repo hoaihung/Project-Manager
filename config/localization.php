@@ -92,6 +92,7 @@ return [
         'upcoming_projects_7_days' => 'Dự án sắp hết hạn 7 ngày tới',
         'no_upcoming_projects' => 'Không có dự án nào sắp hết hạn.',
         'due_soon' => 'Sắp đến hạn',
+        'summary' => 'Tổng quan',
         'overlap_tasks' => 'Nhiệm vụ chồng chéo',
         'today' => 'Hôm nay',
         'month' => 'Tháng',
@@ -276,6 +277,14 @@ return [
         'my_attachments' => 'Tập tin đính kèm của tôi',
         'no_attachments' => 'Không có tập tin đính kèm nào.',
 
+        // Profile summary and notifications enhancements
+        // Summary card heading on profile page
+        'task_summary' => 'Tổng quan công việc',
+        // Label for tasks due today in summary/notifications
+        'due_today' => 'Đến hạn hôm nay',
+        // Label for high priority tasks in notifications
+        'high_priority' => 'Ưu tiên cao',
+
         // Dashboard terms
         'task_statistics' => 'Thống kê công việc',
         'total' => 'Tổng cộng',
@@ -376,6 +385,7 @@ return [
         'upcoming_projects_7_days' => 'Projects ending in the next 7 days',
         'no_upcoming_projects' => 'No projects nearing deadline.',
         'due_soon' => 'Due soon',
+        'summary' => 'Summary',
         'overlap_tasks' => 'Overlapping tasks',
         'today' => 'Today',
         'month' => 'Month',
@@ -520,6 +530,14 @@ return [
         'no_comments' => 'No comments.',
         'my_attachments' => 'My attachments',
         'no_attachments' => 'No attachments.',
+
+        // Profile summary and notifications enhancements
+        // Summary card heading on profile page
+        'task_summary' => 'Task summary',
+        // Label for tasks due today in summary/notifications
+        'due_today' => 'Due today',
+        // Label for high priority tasks in notifications
+        'high_priority' => 'High priority',
 
         // Dashboard terms
         'task_statistics' => 'Task statistics',

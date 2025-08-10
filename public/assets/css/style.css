@@ -152,22 +152,87 @@ table {
     width: 100%;
     border-collapse: collapse;
     margin-bottom: 1rem;
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+    overflow: hidden;
+    background-color: var(--surface);
 }
 table thead {
     background-color: var(--surface);
 }
-table th, table td {
-    padding: 0.75rem;
+table th,
+table td {
+    /* Increase cell padding for improved readability on dense tables */
+    padding: 0.7rem 0.8rem;
     text-align: left;
     border-bottom: 1px solid var(--border);
-    font-size: 0.875rem;
+    font-size: 0.86rem;
 }
 table th {
     color: var(--muted);
     font-weight: 600;
+    background-color: var(--background);
+}
+table tbody tr:nth-child(even) {
+    background-color: var(--background);
 }
 table tbody tr:hover {
+    background-color: var(--surface);
+}
+
+/* Table wrapper: adds padding and border around tables to separate
+   them from surrounding content.  This wrapper should surround
+   <table> elements on pages like the task list, logs, and notes.  It
+   matches the background colour of the table and applies a border
+   radius and border similar to cards.  Horizontal overflow is
+   automatically handled for wide tables on small screens. */
+.table-wrapper {
+    padding: 0.75rem;
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+    margin-bottom: 1rem;
+    overflow-x: auto;
+}
+
+/* List view group headers: highlight the start of a grouped section.  When
+   tasks are grouped by status, priority or other field, the list view
+   inserts a row with colspan across all columns.  Assign the
+   .group-header class to that row so that it stands out with a
+   contrasting background and stronger text colour. */
+.group-header {
+    /* Base styling for group headers in list and log views.  The
+       specific status colours are applied via additional classes
+       (e.g. .status-todo) appended to this element.  Use the
+       background colour from --background to provide a subtle
+       contrast with the table rows and ensure consistency across
+       pages. */
     background-color: var(--background);
+    color: var(--primary);
+    font-weight: 600;
+    padding: 0.5rem 0.75rem;
+}
+
+/* When grouping tasks by status in the list view the header
+   row receives a class composed of `status-<key>`.  These rules
+   leverage the pastel palette used in the Kanban board to
+   differentiate each group visually.  The text colours are
+   chosen to contrast with the background. */
+.group-header.status-todo {
+    background-color: var(--status-todo);
+    color: #374151;
+}
+.group-header.status-in_progress {
+    background-color: var(--status-in-progress);
+    color: #1e3a8a;
+}
+.group-header.status-bug_review {
+    background-color: var(--status-bug-review);
+    color: #9d174d;
+}
+.group-header.status-done {
+    background-color: var(--status-done);
+    color: #065f46;
 }
 
 /* Sidebar styles */
@@ -194,6 +259,34 @@ table tbody tr:hover {
     overflow: hidden;
     border: none !important;
     transition: width 0.3s ease;
+}
+
+/* Nav tabs: used on profile page to switch between profile info and
+   notifications. We restyle the tabs for a modern look consistent
+   with the rest of the UI. */
+.nav-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 1rem;
+}
+.nav-tabs .nav-link {
+    padding: 0.5rem 1rem;
+    color: var(--text);
+    border: 1px solid transparent;
+    border-radius: 0.375rem 0.375rem 0 0;
+    margin-right: 0.25rem;
+    cursor: pointer;
+    transition: color 0.2s, background-color 0.2s;
+    font-size: 0.9rem;
+}
+.nav-tabs .nav-link:hover {
+    color: var(--primary-hover);
+}
+.nav-tabs .nav-link.active {
+    background-color: var(--surface);
+    border-color: var(--border) var(--border) var(--surface);
+    color: var(--primary);
+    font-weight: 600;
 }
 
 /* Toast notification for Kanban updates */
@@ -237,7 +330,10 @@ table tbody tr:hover {
     border-radius: 0.375rem;
     font-size: 0.875rem;
     cursor: pointer;
-    margin-right: 0.5rem;
+    /* Reduce right margin for a tighter button group and add
+       bottom margin to allow wrapping on small screens. */
+    margin-right: 0.35rem;
+    margin-bottom: 0.35rem;
 }
 .btn-primary {
     background-color: var(--primary);
@@ -344,6 +440,58 @@ table tbody tr:hover {
 /* Subtask styling */
 .subtask-item {
     cursor: default;
+}
+
+/* Status labels: used across tables and lists to highlight task status.
+   These classes leverage the same pastel colour palette as the Kanban
+   columns.  The generic .status-label applies shared padding and
+   border-radius, while each status-specific class sets its
+   background and a contrasting text colour. */
+.status-label {
+    display: inline-block;
+    padding: 0.15rem 0.45rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+.status-todo {
+    background-color: var(--status-todo);
+    color: #374151; /* dark slate */
+}
+.status-in_progress {
+    background-color: var(--status-in-progress);
+    color: #1e3a8a; /* indigo */
+}
+.status-bug_review {
+    background-color: var(--status-bug-review);
+    color: #9d174d; /* ruby */
+}
+.status-done {
+    background-color: var(--status-done);
+    color: #065f46; /* green */
+}
+
+/* Kanban items with pending subtasks that are dragged into the Done column
+   will receive a dashed red border to alert the user that there are
+   incomplete subtasks.  This style is applied via the data-warning="1"
+   attribute on the element.  The !important flag ensures that this
+   dashed border overrides any other border styling set by the
+   JavaScript updateKanbanItemStyles() function. */
+.kanban-item[data-warning="1"] {
+    border: 2px dashed var(--danger) !important;
+}
+
+/* Section cards: these wrappers are used on the notifications page to
+   provide a consistent background, border and padding around groups of
+   content.  They mirror the styling of tables and other cards in the
+   application without relying on Bootstrap’s card component. */
+.section-card {
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
 }
 
 /* Responsive adjustments */

@@ -1,4 +1,7 @@
 <?php
+// Ensure helper functions such as linkify() are available in this view.  The
+// helpers file is located two directories up from this file.
+require_once __DIR__ . '/../../helpers.php';
     // Determine return view from query or default to kanban
     $returnView = $_GET['view'] ?? 'kanban';
     $backUrl = 'index.php?controller=task&project_id=' . e($task['project_id']) . '&view=' . e($returnView);
@@ -743,9 +746,11 @@
             if (!list) return;
             list.innerHTML = '';
             if (!notes || notes.length === 0) {
+                // Show the empty message when no notes remain
                 if (emptyMsg) emptyMsg.style.display = '';
                 return;
             }
+            // Hide the empty message when there are notes to display
             if (emptyMsg) emptyMsg.style.display = 'none';
             notes.forEach(n => {
                 const li = document.createElement('li');
@@ -753,8 +758,16 @@
                 li.setAttribute('data-note-id', n.id);
                 const wrapper = document.createElement('div');
                 wrapper.className = 'p-2 border rounded d-flex justify-content-between align-items-center';
+                // Build link that opens the note detail modal rather than navigating away
                 const a = document.createElement('a');
-                a.href = 'index.php?controller=note&action=view&id=' + n.id;
+                a.href = '#';
+                a.className = 'open-note-modal';
+                // Use dataset properties to avoid manually escaping quotes.  The content_html
+                // string may contain markup (converted via linkify on the server) so storing
+                // it on the dataset will not inject HTML into the DOM.  When clicked the
+                // modal will display this HTML via innerHTML.
+                a.dataset.title = n.title;
+                a.dataset.content = n.content_html;
                 a.style.textDecoration = 'none';
                 a.style.color = 'var(--link-color)';
                 a.style.fontWeight = '600';
@@ -772,6 +785,15 @@
                 wrapper.appendChild(btn);
                 li.appendChild(wrapper);
                 list.appendChild(li);
+            });
+            // After rebuilding the list, attach click event handlers to new note links
+            list.querySelectorAll('.open-note-modal').forEach(function(el) {
+                el.addEventListener('click', function(ev) {
+                    ev.preventDefault();
+                    const title = this.dataset.title;
+                    const content = this.dataset.content;
+                    openNoteDetailModal(title, content);
+                });
             });
         }
         function removeNoteAjax(noteId) {
@@ -803,7 +825,10 @@
             if (!text) return '';
             const urlRegex = /(https?:\/\/[^\s]+)/g;
             return escapeHtml(text).replace(urlRegex, function(url) {
-                return '<a href="' + url + '" target="_blank" rel="noopener noreferrer">' + url + '</a>';
+                // Extract domain by removing protocol and taking substring before first '/'
+                const withoutProto = url.replace(/^https?:\/\//, '');
+                const domain = withoutProto.split('/')[0];
+                return '<a href="' + url + '" target="_blank" rel="noopener noreferrer">(liên kết) [' + domain + ']</a>';
             });
         }
         function updateDescriptionDisplay() {
@@ -974,7 +999,15 @@
                         ?>
                         <li class="mb-2" data-note-id="<?php echo e($note['id']); ?>">
                             <div class="p-2 border rounded d-flex justify-content-between align-items-center">
-                                <a href="index.php?controller=note&action=view&id=<?php echo e($note['id']); ?>" style="text-decoration:none; color:var(--link-color); font-weight:600; flex-grow:1;">
+                                <?php
+                                    // Prepare note content for the modal.  Use linkify() to
+                                    // convert URLs to safe anchor tags, then escape quotes
+                                    // for embedding into an HTML attribute.
+                                    $noteContentHtml = linkify($note['content']);
+                                    $noteContentAttr = htmlspecialchars($noteContentHtml, ENT_QUOTES, 'UTF-8');
+                                ?>
+                                <a href="#" class="open-note-modal" data-title="<?php echo e($noteTitle); ?>" data-content="<?php echo $noteContentAttr; ?>"
+                                   style="text-decoration:none; color:var(--primary); font-weight:600; flex-grow:1;">
                                     <?php echo e($noteTitle); ?>
                                 </a>
                                 <button type="button" class="btn btn-outline-danger btn-sm ms-2" title="<?php echo e(__('delete')); ?>" onclick="removeNoteAjax(<?php echo e($note['id']); ?>)">
@@ -1000,6 +1033,50 @@
     </div>
 </div>
 </div> <!-- end of task-edit-container -->
+
+<!-- Modal for viewing note details.  When a user clicks a note title in
+     the notes list, this modal displays the full note content. -->
+<div id="noteDetailModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); align-items:center; justify-content:center; z-index:1050;">
+    <div style="background:#fff; padding:1rem; border-radius:0.5rem; width:90%; max-width:600px; box-shadow:0 2px 8px rgba(0,0,0,0.2);">
+        <h4 id="noteDetailTitle" style="margin-top:0;"></h4>
+        <div id="noteDetailContent" style="max-height:400px; overflow-y:auto; margin-top:0.5rem;"></div>
+        <div class="text-end mt-3">
+            <button type="button" class="btn btn-secondary" onclick="closeNoteDetailModal()">Đóng</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// Modal functions for viewing notes.  These functions are defined
+// outside of DOMContentLoaded so they can be invoked inline from
+// event handlers.  The openNoteDetailModal function accepts the
+// note title and HTML content (already escaped) and injects them
+// into the modal.  The modal is shown by setting its display to flex.
+function openNoteDetailModal(title, content) {
+    const modal = document.getElementById('noteDetailModal');
+    document.getElementById('noteDetailTitle').textContent = title;
+    document.getElementById('noteDetailContent').innerHTML = content;
+    modal.style.display = 'flex';
+}
+function closeNoteDetailModal() {
+    const modal = document.getElementById('noteDetailModal');
+    modal.style.display = 'none';
+}
+// Attach event listeners to note titles after the DOM loads.  Use
+// delegation to capture clicks on dynamically added notes.  The
+// elements have the class .open-note-modal and data-title/data-content
+// attributes for the modal.
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.open-note-modal').forEach(function(el) {
+        el.addEventListener('click', function(ev) {
+            ev.preventDefault();
+            const title = this.getAttribute('data-title');
+            const content = this.getAttribute('data-content');
+            openNoteDetailModal(title, content);
+        });
+    });
+});
+</script>
 
 <!-- Delete Confirmation Modal -->
 <?php $subCount = isset($subtasks) ? count($subtasks) : 0; ?>

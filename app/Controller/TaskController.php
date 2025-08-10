@@ -45,6 +45,15 @@ class TaskController extends Controller
         $priorityFilter = isset($_GET['priority_filter']) ? trim($_GET['priority_filter']) : '';
         $startFilter = $_GET['start_filter'] ?? '';
         $endFilter = $_GET['end_filter'] ?? '';
+        // When viewing the Gantt chart and no explicit date range is provided, default to a 7-day window starting today
+        $view = $_GET['view'] ?? 'kanban';
+        if ($view === 'gantt' && $startFilter === '' && $endFilter === '') {
+            $startFilter = date('Y-m-d');
+            $endFilter = date('Y-m-d', strtotime('+6 days'));
+            // Populate GET so that the values reflect in the form inputs
+            $_GET['start_filter'] = $startFilter;
+            $_GET['end_filter'] = $endFilter;
+        }
         if ($tagFilter !== '' || $userFilter || $priorityFilter !== '' || $startFilter !== '' || $endFilter !== '') {
             $matches = function ($task) use ($tagFilter, $userFilter, $priorityFilter, $startFilter, $endFilter) {
                 // Tag filter
@@ -1084,9 +1093,14 @@ class TaskController extends Controller
         $result = [];
         foreach ($notesForTask as $n) {
             $title = $n['title'] ?: (mb_substr(strip_tags($n['content']), 0, 30) . '…');
+            // Generate HTML for note content with linkified URLs.  This will be
+            // used by the client when displaying the note in a modal.  The
+            // linkify() helper escapes HTML and converts URLs to anchor tags.
+            $contentHtml = linkify($n['content']);
             $result[] = [
-                'id'    => $n['id'],
-                'title' => $title,
+                'id'           => $n['id'],
+                'title'        => $title,
+                'content_html' => $contentHtml,
             ];
         }
         header('Content-Type: application/json');
@@ -1142,9 +1156,11 @@ class TaskController extends Controller
         $result = [];
         foreach ($notesForTask as $n) {
             $title = $n['title'] ?: (mb_substr(strip_tags($n['content']), 0, 30) . '…');
+            $contentHtml = linkify($n['content']);
             $result[] = [
-                'id'    => $n['id'],
-                'title' => $title,
+                'id'           => $n['id'],
+                'title'        => $title,
+                'content_html' => $contentHtml,
             ];
         }
         header('Content-Type: application/json');

@@ -51,6 +51,18 @@ class Log extends Model
     }
 
     /**
+     * Delete all log entries.  Administrators can call this to clear the
+     * audit log.  Use with caution as this operation is irreversible.
+     */
+    public function deleteAll(): void
+    {
+        // Use a plain DELETE instead of TRUNCATE to respect foreign
+        // key constraints, if any.  Where constraints exist, TRUNCATE
+        // would fail.  No parameters are bound.
+        $this->query("DELETE FROM logs");
+    }
+
+    /**
      * Get log entries related to a specific task. This method searches the
      * details column for occurrences of the task identifier (e.g. "task #3").
      * It is a simple pattern match and will return recent logs first.
