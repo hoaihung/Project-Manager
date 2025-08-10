@@ -594,7 +594,13 @@ require_once __DIR__ . '/../../helpers.php';
                 </div>
                 <div class="mb-2">
                     <label for="modalNoteContent" class="form-label small text-muted mb-1"><?php echo e(__('content')); ?></label>
-                    <textarea id="modalNoteContent" class="form-control" rows="3"></textarea>
+                    <!-- Formatting toolbar for new note modal -->
+                    <div class="btn-group mb-1" role="group">
+                        <button type="button" class="btn btn-light btn-sm" id="btn-modal-create-bold"><strong>B</strong></button>
+                        <button type="button" class="btn btn-light btn-sm" id="btn-modal-create-italic"><em>I</em></button>
+                        <button type="button" class="btn btn-light btn-sm" id="btn-modal-create-list">&bull; List</button>
+                    </div>
+                    <textarea id="modalNoteContent" class="form-control" rows="4"></textarea>
                 </div>
                 <div class="d-flex justify-content-end gap-2 mt-3">
                     <button type="button" class="btn btn-secondary" onclick="closeCreateNoteModal()"><?php echo e(__('cancel')); ?></button>
@@ -636,6 +642,12 @@ require_once __DIR__ . '/../../helpers.php';
         // Constants
         const TASK_ID = <?php echo (int)$task['id']; ?>;
         const RETURN_VIEW = <?php echo json_encode($returnView); ?>;
+        // Provide current user information for notes editing.  These constants
+        // allow the frontend to determine whether the edit button should be
+        // displayed for a given note (author or admin).  They are injected
+        // from the server session.
+        const CURRENT_USER_ID = <?php echo isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 0; ?>;
+        const IS_ADMIN = <?php echo ((isset($_SESSION['user']['role_id']) && (int)$_SESSION['user']['role_id'] === 1) ? 'true' : 'false'); ?>;
 
         // Helper functions for notes modals
         function openAttachNoteModal() {
@@ -762,27 +774,42 @@ require_once __DIR__ . '/../../helpers.php';
                 const a = document.createElement('a');
                 a.href = '#';
                 a.className = 'open-note-modal';
-                // Use dataset properties to avoid manually escaping quotes.  The content_html
-                // string may contain markup (converted via linkify on the server) so storing
-                // it on the dataset will not inject HTML into the DOM.  When clicked the
-                // modal will display this HTML via innerHTML.
+                // Store title, HTML content, raw content and author for later use
                 a.dataset.title = n.title;
                 a.dataset.content = n.content_html;
+                a.dataset.raw = n.content_raw;
+                a.dataset.userId = n.user_id;
                 a.style.textDecoration = 'none';
                 a.style.color = 'var(--link-color)';
                 a.style.fontWeight = '600';
                 a.style.flexGrow = '1';
                 a.textContent = n.title;
                 wrapper.appendChild(a);
-                const btn = document.createElement('button');
-                btn.type = 'button';
-                btn.className = 'btn btn-outline-danger btn-sm ms-2';
-                btn.title = '<?php echo e(__('delete')); ?>';
-                btn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
-                btn.onclick = function() {
+                const btnGroup = document.createElement('div');
+                btnGroup.className = 'btn-group ms-2';
+                // Conditionally add edit button if the current user is the author or admin
+                if (n.user_id === CURRENT_USER_ID || IS_ADMIN) {
+                    const editBtn = document.createElement('button');
+                    editBtn.type = 'button';
+                    editBtn.className = 'btn btn-outline-primary btn-sm';
+                    editBtn.title = '<?php echo e(__('edit')); ?>';
+                    editBtn.innerHTML = '<i class="fa-solid fa-pencil"></i>';
+                    editBtn.onclick = function() {
+                        openNoteEditModal(n.id, n.title, n.content_raw);
+                    };
+                    btnGroup.appendChild(editBtn);
+                }
+                // Delete button
+                const delBtn = document.createElement('button');
+                delBtn.type = 'button';
+                delBtn.className = 'btn btn-outline-danger btn-sm';
+                delBtn.title = '<?php echo e(__('delete')); ?>';
+                delBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+                delBtn.onclick = function() {
                     removeNoteAjax(n.id);
                 };
-                wrapper.appendChild(btn);
+                btnGroup.appendChild(delBtn);
+                wrapper.appendChild(btnGroup);
                 li.appendChild(wrapper);
                 list.appendChild(li);
             });
@@ -790,8 +817,13 @@ require_once __DIR__ . '/../../helpers.php';
             list.querySelectorAll('.open-note-modal').forEach(function(el) {
                 el.addEventListener('click', function(ev) {
                     ev.preventDefault();
-                    const title = this.dataset.title;
-                    const content = this.dataset.content;
+                    const title  = this.dataset.title;
+                    const content= this.dataset.content;
+                    const raw    = this.dataset.raw;
+                    const id     = this.closest('li').getAttribute('data-note-id');
+                    window.currentDetailNoteId = id;
+                    window.currentDetailNoteTitle = title;
+                    window.currentDetailNoteRaw = raw;
                     openNoteDetailModal(title, content);
                 });
             });
@@ -1000,19 +1032,33 @@ require_once __DIR__ . '/../../helpers.php';
                         <li class="mb-2" data-note-id="<?php echo e($note['id']); ?>">
                             <div class="p-2 border rounded d-flex justify-content-between align-items-center">
                                 <?php
-                                    // Prepare note content for the modal.  Use linkify() to
-                                    // convert URLs to safe anchor tags, then escape quotes
-                                    // for embedding into an HTML attribute.
-                                    $noteContentHtml = linkify($note['content']);
+                                    // Prepare note content for the modal.  Convert markdown to safe HTML using
+                                    // the markdown_to_html helper so that users see formatted notes when
+                                    // opening the detail modal.  Also preserve the raw markdown for editing.
+                                    $noteContentHtml = markdown_to_html($note['content']);
                                     $noteContentAttr = htmlspecialchars($noteContentHtml, ENT_QUOTES, 'UTF-8');
+                                    $noteRawAttr = htmlspecialchars($note['content'], ENT_QUOTES, 'UTF-8');
                                 ?>
-                                <a href="#" class="open-note-modal" data-title="<?php echo e($noteTitle); ?>" data-content="<?php echo $noteContentAttr; ?>"
+                                <a href="#" class="open-note-modal" data-title="<?php echo e($noteTitle); ?>" data-content="<?php echo $noteContentAttr; ?>" data-raw="<?php echo $noteRawAttr; ?>"
                                    style="text-decoration:none; color:var(--primary); font-weight:600; flex-grow:1;">
                                     <?php echo e($noteTitle); ?>
                                 </a>
-                                <button type="button" class="btn btn-outline-danger btn-sm ms-2" title="<?php echo e(__('delete')); ?>" onclick="removeNoteAjax(<?php echo e($note['id']); ?>)">
-                                    <i class="fa-solid fa-xmark"></i>
-                                </button>
+                                <div class="btn-group ms-2" role="group">
+                                    <button type="button" class="btn btn-outline-primary btn-sm" title="<?php echo e(__('edit')); ?>"
+                                            <?php
+                                                // Use single quotes around the title and content parameters to avoid
+                                                // breaking the onclick attribute.  Escape any single quotes in the
+                                                // strings to ensure valid JavaScript syntax.
+                                                $jsTitle   = str_replace("'", "\\'", $noteTitle);
+                                                $jsContent = str_replace("'", "\\'", $note['content']);
+                                            ?>
+                                            onclick="openNoteEditModal(<?php echo e($note['id']); ?>, '<?php echo $jsTitle; ?>', '<?php echo $jsContent; ?>')">
+                                        <i class="fa-solid fa-pencil"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger btn-sm" title="<?php echo e(__('delete')); ?>" onclick="removeNoteAjax(<?php echo e($note['id']); ?>)">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </button>
+                                </div>
                             </div>
                         </li>
                     <?php endforeach; ?>
@@ -1041,6 +1087,8 @@ require_once __DIR__ . '/../../helpers.php';
         <h4 id="noteDetailTitle" style="margin-top:0;"></h4>
         <div id="noteDetailContent" style="max-height:400px; overflow-y:auto; margin-top:0.5rem;"></div>
         <div class="text-end mt-3">
+            <!-- Edit button triggers editing of the currently viewed note -->
+            <button type="button" class="btn btn-primary me-2" onclick="editDetailNote()"><?php echo __('edit') ?: 'Sửa'; ?></button>
             <button type="button" class="btn btn-secondary" onclick="closeNoteDetailModal()">Đóng</button>
         </div>
     </div>
@@ -1058,6 +1106,34 @@ function openNoteDetailModal(title, content) {
     document.getElementById('noteDetailContent').innerHTML = content;
     modal.style.display = 'flex';
 }
+
+// Formatting toolbar handlers for create note modal
+document.addEventListener('DOMContentLoaded', function() {
+    const modalBoldBtn  = document.getElementById('btn-modal-create-bold');
+    const modalItalicBtn= document.getElementById('btn-modal-create-italic');
+    const modalListBtn  = document.getElementById('btn-modal-create-list');
+    const modalTextarea = document.getElementById('modalNoteContent');
+    function modalApplyFormat(format) {
+        if (!modalTextarea) return;
+        const start = modalTextarea.selectionStart;
+        const end   = modalTextarea.selectionEnd;
+        const selected = modalTextarea.value.slice(start, end);
+        let replacement = selected;
+        if (format === 'bold') {
+            replacement = '**' + selected + '**';
+        } else if (format === 'italic') {
+            replacement = '_' + selected + '_';
+        } else if (format === 'list') {
+            const lines = selected.split(/\n/);
+            replacement = lines.map(function(l) { return l ? '- ' + l : ''; }).join('\n');
+        }
+        modalTextarea.setRangeText(replacement, start, end, 'end');
+        modalTextarea.focus();
+    }
+    if (modalBoldBtn) modalBoldBtn.addEventListener('click', function() { modalApplyFormat('bold'); });
+    if (modalItalicBtn) modalItalicBtn.addEventListener('click', function() { modalApplyFormat('italic'); });
+    if (modalListBtn) modalListBtn.addEventListener('click', function() { modalApplyFormat('list'); });
+});
 function closeNoteDetailModal() {
     const modal = document.getElementById('noteDetailModal');
     modal.style.display = 'none';
@@ -1070,10 +1146,102 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.open-note-modal').forEach(function(el) {
         el.addEventListener('click', function(ev) {
             ev.preventDefault();
+            // Fetch note attributes for detail and potential editing
             const title = this.getAttribute('data-title');
             const content = this.getAttribute('data-content');
+            const raw    = this.getAttribute('data-raw');
+            const id     = this.closest('li').getAttribute('data-note-id');
+            // Store globally for editing later
+            window.currentDetailNoteId = id;
+            window.currentDetailNoteTitle = title;
+            window.currentDetailNoteRaw = raw;
             openNoteDetailModal(title, content);
         });
+    });
+});
+
+// Function called from Edit button inside the note detail modal.  Closes
+// the detail modal and opens the editing modal with raw content.
+function editDetailNote() {
+    closeNoteDetailModal();
+    if (!window.currentDetailNoteId) return;
+    openNoteEditModal(window.currentDetailNoteId, window.currentDetailNoteTitle, window.currentDetailNoteRaw);
+}
+</script>
+
+<!-- Modal for editing note -->
+<div id="noteEditModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); align-items:center; justify-content:center; z-index:1050;">
+    <div style="background:#fff; padding:1rem; border-radius:0.5rem; width:90%; max-width:600px; box-shadow:0 2px 8px rgba(0,0,0,0.2);">
+        <h4 style="margin-top:0;"><?php echo __('edit_note') ?: 'Sửa ghi chú'; ?></h4>
+        <form id="noteEditForm">
+            <div class="mb-2">
+                <label for="noteEditTitle" class="form-label small"><?php echo __('title') ?: 'Tiêu đề'; ?></label>
+                <input type="text" id="noteEditTitle" name="title" class="form-control form-control-sm">
+            </div>
+            <div class="mb-2">
+                <label for="noteEditContent" class="form-label small"><?php echo __('content') ?: 'Nội dung'; ?></label>
+                <div class="btn-group mb-1" role="group">
+                    <button type="button" class="btn btn-light btn-sm" data-format="bold"><strong>B</strong></button>
+                    <button type="button" class="btn btn-light btn-sm" data-format="italic"><em>I</em></button>
+                    <button type="button" class="btn btn-light btn-sm" data-format="list">&bull; List</button>
+                </div>
+                <textarea id="noteEditContent" name="content" class="form-control form-control-sm" rows="6"></textarea>
+            </div>
+            <div class="text-end">
+                <button type="button" class="btn btn-secondary btn-sm" id="noteEditCancel"><?php echo __('cancel') ?: 'Hủy bỏ'; ?></button>
+                <button type="submit" class="btn btn-primary btn-sm"><?php echo __('save') ?: 'Lưu'; ?></button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Variables and functions for note editing modal in task edit view
+let currentEditingNoteId = null;
+function openNoteEditModal(id, title, content) {
+    currentEditingNoteId = id;
+    document.getElementById('noteEditTitle').value = title || '';
+    document.getElementById('noteEditContent').value = content || '';
+    document.getElementById('noteEditModal').style.display = 'flex';
+}
+document.getElementById('noteEditCancel').addEventListener('click', function() {
+    document.getElementById('noteEditModal').style.display = 'none';
+});
+// Formatting buttons
+document.querySelectorAll('#noteEditModal [data-format]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        const format = this.getAttribute('data-format');
+        const textarea = document.getElementById('noteEditContent');
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const selected = textarea.value.slice(start, end);
+        let replacement = selected;
+        if (format === 'bold') {
+            replacement = '**' + selected + '**';
+        } else if (format === 'italic') {
+            replacement = '_' + selected + '_';
+        } else if (format === 'list') {
+            // Prepend a bullet if not already at the beginning of a line
+            const lines = selected.split(/\n/);
+            replacement = lines.map(function(l) { return l ? '- ' + l : ''; }).join('\n');
+        }
+        textarea.setRangeText(replacement, start, end, 'end');
+        textarea.focus();
+    });
+});
+// Submit handler to save note via AJAX
+document.getElementById('noteEditForm').addEventListener('submit', function(ev) {
+    ev.preventDefault();
+    const title = document.getElementById('noteEditTitle').value;
+    const content = document.getElementById('noteEditContent').value;
+    if (!currentEditingNoteId) return;
+    fetch('index.php?controller=note&action=edit&id=' + currentEditingNoteId, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'title=' + encodeURIComponent(title) + '&content=' + encodeURIComponent(content)
+    }).then(function() {
+        // Reload to reflect changes
+        location.reload();
     });
 });
 </script>

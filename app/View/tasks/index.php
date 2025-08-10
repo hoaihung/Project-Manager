@@ -203,7 +203,15 @@
                             $itemStyle .= 'border: 2px solid rgb(185, 28, 28);';
                         }
                     ?>
-                    <div class="kanban-item" data-id="<?php echo e($task['id']); ?>" data-subtask="<?php echo !empty($task['is_subtask']) ? 'true' : 'false'; ?>" data-due-date="<?php echo e($task['due_date']); ?>"<?php if ($task['status'] === 'done' && (!empty($task['subtask_total']) && $task['subtask_done'] < $task['subtask_total'])): ?> data-warning="1"<?php endif; ?> style="<?php echo $itemStyle; ?>">
+                    <div class="kanban-item"
+                        data-id="<?php echo e($task['id']); ?>"
+                        data-subtask="<?php echo !empty($task['is_subtask']) ? 'true' : 'false'; ?>"
+                        data-due-date="<?php echo e($task['due_date']); ?>"
+                        data-current-status="<?php echo e($task['status']); ?>"
+                        data-subtask-total="<?php echo (int)($task['subtask_total'] ?? 0); ?>"
+                        data-subtask-done="<?php echo (int)($task['subtask_done'] ?? 0); ?>"
+                        <?php if ($task['status'] === 'done' && (!empty($task['subtask_total']) && $task['subtask_done'] < $task['subtask_total'])): ?> data-warning="1"<?php endif; ?>
+                        style="<?php echo $itemStyle; ?>">
                         <!-- Task name line -->
                         <div style="display:flex; align-items:center; justify-content:space-between;">
                             <div style="display:flex; align-items:center; gap:0.25rem;">
@@ -761,3 +769,43 @@
 <?php else: ?>
     <p>Unknown view.</p>
 <?php endif; ?>
+
+<!-- Modals for status change confirmations on Kanban board -->
+<!-- Modal for reverting a completed task back to an active status.  A checkbox
+     must be checked to enable the confirm button. -->
+<div id="statusRevertModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); align-items:center; justify-content:center; z-index:1050;">
+    <div style="background:#fff; padding:1.5rem; border-radius:0.5rem; max-width:500px; width:90%; box-shadow:0 0 10px rgba(0,0,0,0.2);">
+        <h4 style="margin-top:0;">Chuyển trạng thái công việc?</h4>
+        <p style="margin-bottom:0.75rem;">Công việc này đã được hoàn thành. Không nên chuyển sang trạng thái khác; nếu cần hãy tạo công việc mới.</p>
+        <div style="margin-bottom:0.75rem;">
+            <input type="checkbox" id="statusRevertConfirm"> <label for="statusRevertConfirm">Tôi hiểu và vẫn muốn tiếp tục</label>
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:0.5rem;">
+            <button type="button" class="btn btn-secondary" id="statusRevertCancel">Hủy</button>
+            <button type="button" class="btn btn-danger" id="statusRevertOk" style="pointer-events:none; opacity:0.5;">Xác nhận</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for asking whether to mark all subtasks as done when moving a parent task to Done -->
+<div id="subtaskCompleteModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); align-items:center; justify-content:center; z-index:1050;">
+    <div style="background:#fff; padding:1.5rem; border-radius:0.5rem; max-width:500px; width:90%; box-shadow:0 0 10px rgba(0,0,0,0.2);">
+        <h4 style="margin-top:0;">Có subtasks chưa hoàn thành</h4>
+        <p id="subtaskCompleteMessage" style="margin-bottom:1rem;"></p>
+        <!-- Selection of how to handle subtasks: radio buttons instead of dropdown -->
+        <div style="margin-bottom:1rem;">
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="subtaskCompleteOption" id="subtaskOptionKeep" value="keep" checked>
+                <label class="form-check-label" for="subtaskOptionKeep">Giữ nguyên trạng thái cho subtasks</label>
+            </div>
+            <div class="form-check mt-1">
+                <input class="form-check-input" type="radio" name="subtaskCompleteOption" id="subtaskOptionAll" value="all">
+                <label class="form-check-label" for="subtaskOptionAll">Chuyển hết subtasks sang Hoàn thành</label>
+            </div>
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:0.5rem;">
+            <button type="button" class="btn btn-secondary" id="subtaskCompleteCancel">Hủy bỏ</button>
+            <button type="button" class="btn btn-primary" id="subtaskCompleteOk">Xác nhận</button>
+        </div>
+    </div>
+</div>

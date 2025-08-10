@@ -379,15 +379,29 @@ class NoteController extends Controller
             if ($content === '') {
                 $_SESSION['error'] = __('content_required') ?: 'Content is required.';
             } else {
-                $updateData = [
-                    'project_id' => $_POST['project_id'] ? (int)$_POST['project_id'] : null,
-                    'title'      => $_POST['title'] ?? null,
-                    'content'    => $content,
-                ];
+                // Build update data selectively.  When editing via the inline
+                // modal on tasks or notes pages, only the title and content
+                // fields are sent.  In that case we should not unset the
+                // project_id or task associations.  Therefore we only update
+                // project_id if it is provided in the POST request.
+                $updateData = [];
+                if (isset($_POST['project_id'])) {
+                    // Cast non‑empty value to integer; allow null to remove project
+                    $updateData['project_id'] = $_POST['project_id'] !== '' ? (int)$_POST['project_id'] : null;
+                }
+                // Always update title if provided; allow null to clear
+                if (array_key_exists('title', $_POST)) {
+                    $updateData['title'] = $_POST['title'] !== '' ? $_POST['title'] : null;
+                }
+                // Always update content
+                $updateData['content'] = $content;
                 $noteModel->update($id, $updateData);
-                // Update linked tasks
-                $selected = $_POST['task_ids'] ?? [];
-                if (is_array($selected)) {
+                // Update linked tasks only if the field is present.  When editing
+                // via AJAX (modal), task_ids may be omitted to preserve existing
+                // associations.  If the form includes task_ids (even an empty
+                // array), we update the associations accordingly.
+                if (isset($_POST['task_ids']) && is_array($_POST['task_ids'])) {
+                    $selected = $_POST['task_ids'];
                     $noteModel->setTasks($id, array_map('intval', $selected));
                 }
                 redirect('index.php?controller=note&action=view&id=' . $id);

@@ -60,6 +60,10 @@ CREATE TABLE `tasks` (
   `tags` VARCHAR(255) DEFAULT NULL,
   `sort_order` INT UNSIGNED NOT NULL DEFAULT 1,
   `created_at` DATETIME NOT NULL,
+  -- New column to track when a task was completed (status transitioned to 'done').
+  -- This value is set to the date/time when the task first enters the 'done' state
+  -- and cleared when moving back to another status.
+  `completed_at` DATETIME NULL,
   CONSTRAINT `fk_tasks_project` FOREIGN KEY (`project_id`) REFERENCES `projects`(`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `fk_tasks_assigned_user` FOREIGN KEY (`assigned_to`) REFERENCES `users`(`id`) ON DELETE SET NULL ON UPDATE CASCADE,
   CONSTRAINT `fk_tasks_parent` FOREIGN KEY (`parent_id`) REFERENCES `tasks`(`id`) ON DELETE CASCADE ON UPDATE CASCADE

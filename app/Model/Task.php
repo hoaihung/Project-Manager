@@ -154,14 +154,21 @@ class Task extends Model
         $sortOrder = $row['next_sort'] ?? 1;
         // Insert new task including priority and tags. Tags are stored as a
         // comma‑separated string. Priority defaults to 'normal'.
+        // Determine if the task is being created in a completed state.  If so, set
+        // the completed_at timestamp to NOW() so that downstream reporting
+        // can determine when the task was finished.  Otherwise leave
+        // completed_at as NULL.  Use a ternary to avoid injecting untrusted
+        // data into the query string.
+        $status = $data['status'] ?? 'todo';
+        $completedAt = ($status === 'done') ? date('Y-m-d H:i:s') : null;
         $this->query(
-            "INSERT INTO tasks (project_id, name, description, status, start_date, due_date, assigned_to, parent_id, priority, tags, sort_order, created_at) " .
-            "VALUES (:project_id, :name, :description, :status, :start_date, :due_date, :assigned_to, :parent_id, :priority, :tags, :sort_order, NOW())",
+            "INSERT INTO tasks (project_id, name, description, status, start_date, due_date, assigned_to, parent_id, priority, tags, sort_order, created_at, completed_at) " .
+            "VALUES (:project_id, :name, :description, :status, :start_date, :due_date, :assigned_to, :parent_id, :priority, :tags, :sort_order, NOW(), :completed_at)",
             [
                 'project_id' => $data['project_id'],
                 'name' => $data['name'],
                 'description' => $data['description'] ?? '',
-                'status' => $data['status'] ?? 'todo',
+                'status' => $status,
                 'start_date' => $data['start_date'] ?? null,
                 'due_date' => $data['due_date'] ?? null,
                 'assigned_to' => $data['assigned_to'] ?? null,
@@ -169,6 +176,7 @@ class Task extends Model
                 'priority' => $data['priority'] ?? 'normal',
                 'tags' => $data['tags'] ?? null,
                 'sort_order' => $sortOrder,
+                'completed_at' => $completedAt,
             ]
         );
         return (int)$this->getConnection()->lastInsertId();
@@ -182,21 +190,40 @@ class Task extends Model
      */
     public function update(int $id, array $data): void
     {
-        // Update task fields including priority and tags. Only fields provided
-        // in $data will be updated; defaults are applied where necessary.
+        // When updating a task, determine whether the status is transitioning
+        // into or out of the 'done' state.  If moving into 'done' and there
+        // is no existing completed_at, set completed_at to NOW().  If moving
+        // out of 'done', clear completed_at.  Otherwise leave the value
+        // unchanged.
+        $newStatus = $data['status'];
+        // Fetch current status and completed_at to compare
+        $stmt = $this->query("SELECT status, completed_at FROM tasks WHERE id = :id", ['id' => $id]);
+        $current = $stmt->fetch();
+        $currentStatus = $current['status'] ?? null;
+        $currentCompleted = $current['completed_at'] ?? null;
+        $completedAtParam = null;
+        if ($newStatus === 'done' && $currentStatus !== 'done') {
+            $completedAtParam = date('Y-m-d H:i:s');
+        } elseif ($newStatus !== 'done' && $currentStatus === 'done') {
+            $completedAtParam = null;
+        } else {
+            // Retain existing completed_at when status stays the same
+            $completedAtParam = $currentCompleted;
+        }
         $this->query(
-            "UPDATE tasks SET name=:name, description=:description, status=:status, start_date=:start_date, due_date=:due_date, assigned_to=:assigned_to, parent_id=:parent_id, priority=:priority, tags=:tags WHERE id=:id",
+            "UPDATE tasks SET name=:name, description=:description, status=:status, start_date=:start_date, due_date=:due_date, assigned_to=:assigned_to, parent_id=:parent_id, priority=:priority, tags=:tags, completed_at=:completed_at WHERE id=:id",
             [
                 'id' => $id,
                 'name' => $data['name'],
                 'description' => $data['description'] ?? '',
-                'status' => $data['status'],
+                'status' => $newStatus,
                 'start_date' => $data['start_date'] ?? null,
                 'due_date' => $data['due_date'] ?? null,
                 'assigned_to' => $data['assigned_to'] ?? null,
                 'parent_id' => $data['parent_id'] ?? null,
                 'priority' => $data['priority'] ?? 'normal',
                 'tags' => $data['tags'] ?? null,
+                'completed_at' => $completedAtParam,
             ]
         );
     }
@@ -220,16 +247,65 @@ class Task extends Model
      */
     public function updateOrder(array $orders): void
     {
+        // Iterate through each status and associated ordered list of task IDs
         foreach ($orders as $status => $taskIds) {
             $order = 1;
             foreach ($taskIds as $taskId) {
-                $this->query("UPDATE tasks SET status=:status, sort_order=:sort_order WHERE id=:id", [
-                    'status' => $status,
-                    'sort_order' => $order,
-                    'id' => $taskId,
-                ]);
+                // Fetch current status and completed_at before updating
+                $row = $this->query("SELECT status, completed_at FROM tasks WHERE id = :id", ['id' => $taskId])->fetch();
+                $currentStatus = $row['status'] ?? null;
+                $currentCompleted = $row['completed_at'] ?? null;
+                $completedAtUpdate = $currentCompleted;
+                // Determine whether we need to set or clear completed_at
+                if ($status === 'done' && $currentStatus !== 'done') {
+                    $completedAtUpdate = date('Y-m-d H:i:s');
+                } elseif ($status !== 'done' && $currentStatus === 'done') {
+                    $completedAtUpdate = null;
+                }
+                $this->query(
+                    "UPDATE tasks SET status=:status, sort_order=:sort_order, completed_at=:completed_at WHERE id=:id",
+                    [
+                        'status' => $status,
+                        'sort_order' => $order,
+                        'completed_at' => $completedAtUpdate,
+                        'id' => $taskId,
+                    ]
+                );
                 $order++;
             }
+        }
+    }
+
+    /**
+     * Mark all direct subtasks of the given task as done.  This will
+     * recursively traverse the subtask hierarchy, updating each child
+     * record to have a status of 'done' and setting completed_at to
+     * NOW() if not already set.  This helper is used when the user
+     * chooses to mark all subtasks as completed when moving a parent
+     * task into the done column.
+     *
+     * @param int $taskId The ID of the parent task whose subtasks should be completed
+     */
+    public function markSubtasksDone(int $taskId): void
+    {
+        // Fetch direct subtasks
+        $stmt = $this->query("SELECT id, status, completed_at FROM tasks WHERE parent_id = :pid AND status <> 'deleted'", ['pid' => $taskId]);
+        $subs = $stmt->fetchAll();
+        foreach ($subs as $sub) {
+            $sid = (int)$sub['id'];
+            $status = $sub['status'];
+            $completed = $sub['completed_at'];
+            $newCompleted = $completed;
+            if ($status !== 'done') {
+                $newCompleted = date('Y-m-d H:i:s');
+            }
+            // Update the subtask
+            $this->query("UPDATE tasks SET status='done', completed_at=:completed_at WHERE id=:sid", [
+                'completed_at' => $newCompleted,
+                'sid' => $sid,
+            ]);
+            // Recursively complete children of this subtask
+            $this->markSubtasksDone($sid);
         }
     }
 

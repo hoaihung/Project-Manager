@@ -18,6 +18,12 @@
     </div>
     <div class="mb-3">
         <label for="content" class="form-label"><?php echo e(__('content') ?: 'Nội dung'); ?></label>
+        <!-- Formatting toolbar for note editing -->
+        <div class="btn-group mb-1" role="group">
+            <button type="button" class="btn btn-light btn-sm" id="btn-edit-bold"><strong>B</strong></button>
+            <button type="button" class="btn btn-light btn-sm" id="btn-edit-italic"><em>I</em></button>
+            <button type="button" class="btn btn-light btn-sm" id="btn-edit-list">&bull; List</button>
+        </div>
         <textarea name="content" id="content" class="form-control" rows="6" required><?php echo e($note['content']); ?></textarea>
     </div>
     <div class="mb-3" id="tasks-wrapper">
@@ -79,4 +85,31 @@ function onProjectChange(pid) {
             container.innerHTML = '<p class="text-muted">Error loading tasks</p>';
         });
 }
+
+// Formatting toolbar handlers for edit note page
+document.addEventListener('DOMContentLoaded', function() {
+    const boldBtn  = document.getElementById('btn-edit-bold');
+    const italicBtn= document.getElementById('btn-edit-italic');
+    const listBtn  = document.getElementById('btn-edit-list');
+    const textarea = document.getElementById('content');
+    function applyFormat(format) {
+        const start = textarea.selectionStart;
+        const end   = textarea.selectionEnd;
+        const selected = textarea.value.slice(start, end);
+        let replacement = selected;
+        if (format === 'bold') {
+            replacement = '**' + selected + '**';
+        } else if (format === 'italic') {
+            replacement = '_' + selected + '_';
+        } else if (format === 'list') {
+            const lines = selected.split(/\n/);
+            replacement = lines.map(function(l) { return l ? '- ' + l : ''; }).join('\n');
+        }
+        textarea.setRangeText(replacement, start, end, 'end');
+        textarea.focus();
+    }
+    if (boldBtn) boldBtn.addEventListener('click', function() { applyFormat('bold'); });
+    if (italicBtn) italicBtn.addEventListener('click', function() { applyFormat('italic'); });
+    if (listBtn) listBtn.addEventListener('click', function() { applyFormat('list'); });
+});
 </script>

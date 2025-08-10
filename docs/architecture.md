@@ -20,7 +20,7 @@ Project Manager được xây dựng dựa trên mô hình Model–View–Contro
   * Các controller khác như `LogController`, `ProfileController`, `ReportController`, `TagController`, `UserController`.
 
 * **Model/** – các lớp tương tác với database:
-  * `Task.php`: thao tác với bảng `tasks`, bao gồm các phương thức lấy thống kê theo trạng thái, ưu tiên.
+  * `Task.php`: thao tác với bảng `tasks`. Ngoài các CRUD cơ bản và thống kê theo trạng thái/ưu tiên, lớp này còn theo dõi thời điểm một công việc được hoàn thành thông qua cột `completed_at` (được set khi chuyển trạng thái sang `done` và xóa khi chuyển ra khỏi `done`). Phương thức `markSubtasksDone()` hỗ trợ đánh dấu tất cả subtasks của một công việc là hoàn thành khi người dùng chọn.
   * `Note.php`: thao tác với bảng `notes` và `note_task`.  
   * `TaskLink.php`: quản lý bảng `task_links`.  
   * `ChecklistItem.php`: quản lý bảng `checklist_items`.  
@@ -45,4 +45,16 @@ Project Manager được xây dựng dựa trên mô hình Model–View–Contro
 
 ## Giao tiếp frontend
 
-Giao diện chủ yếu sử dụng Bootstrap và một tệp JS (`public/assets/js/app.js`) để thực hiện các thao tác tương tác: kéo thả trong Kanban, xử lý sidebar, thêm/chỉnh sửa liên kết và checklist. Không sử dụng framework JS lớn nên ứng dụng tải nhanh và dễ tùy chỉnh.
+ Giao diện chủ yếu sử dụng Bootstrap và một tệp JS (`public/assets/js/app.js`) để thực hiện các thao tác tương tác: kéo thả trong Kanban, xử lý sidebar, thêm/chỉnh sửa liên kết và checklist. Khi kéo thả giữa các cột Kanban, hệ thống hiển thị các modal xác nhận:
+ 
+ * Khi chuyển một công việc đã hoàn thành sang trạng thái khác, người dùng phải tick chọn “tôi hiểu và vẫn muốn tiếp tục” trước khi trạng thái được cập nhật và thời điểm hoàn thành (`completed_at`) sẽ bị xóa.
+ * Khi chuyển một công việc có subtasks chưa hoàn thành vào cột “Hoàn thành”, modal sẽ hiển thị **hai nút radio** với lựa chọn “Giữ nguyên trạng thái cho subtasks” hoặc “Chuyển hết subtasks sang Hoàn thành”. Người dùng chọn một tùy chọn rồi bấm nút “Xác nhận” để áp dụng hoặc “Hủy bỏ” để bỏ qua. Tùy theo lựa chọn, hệ thống sẽ đánh dấu toàn bộ subtasks hoàn thành (cập nhật `completed_at`) hoặc giữ nguyên và tô viền cảnh báo cho task cha.
+
+ Các modal này giúp tránh thao tác nhầm và bảo toàn dữ liệu. Sau khi người dùng xác nhận, JavaScript gửi yêu cầu tới máy chủ để cập nhật trạng thái và thứ tự của nhiệm vụ; các bản ghi được lưu lại trong cơ sở dữ liệu nên khi tải lại trang trạng thái không bị mất.
+ Không sử dụng framework JS lớn nên ứng dụng tải nhanh và dễ tùy chỉnh.
+
+### Modal chỉnh sửa ghi chú
+
+ Từ phiên bản 4.8 trở đi, ghi chú có thể được chỉnh sửa trực tiếp thông qua các modal mà không cần rời khỏi trang hiện tại. Trong trang chỉnh sửa công việc, danh sách ghi chú kèm nút Sửa mở `noteEditModal` chứa form tiêu đề và nội dung. Modal này có thanh công cụ nhỏ cho phép người dùng bôi đậm, nghiêng hoặc tạo danh sách (đầu dòng) bằng cú pháp Markdown. Khi mở chi tiết ghi chú (modal xem), hệ thống lưu lại ID và nội dung thô của ghi chú; nút **Sửa** trong modal xem sẽ gọi lại modal chỉnh sửa với dữ liệu này. Tương tự, trong trang danh sách ghi chú (`notes/index`), các nút Sửa cũng mở modal chỉnh sửa ghi chú thay vì điều hướng tới trang khác. Thao tác lưu được xử lý qua AJAX và trang sẽ reload sau khi cập nhật để phản ánh thay đổi.
+
+ Khi lưu ghi chú từ modal, chỉ tiêu đề và nội dung được gửi về backend. Để tránh mất thông tin liên kết (dự án hoặc các công việc đã gán), phương thức `NoteController::edit()` được cập nhật (từ bản 4.9.1) để **chỉ cập nhật `project_id` hoặc danh sách `task_ids` khi các tham số này có mặt trong request**. Nhờ vậy, việc chỉnh sửa nhanh trong modal sẽ không làm ghi chú mất liên kết với dự án hay công việc liên quan.

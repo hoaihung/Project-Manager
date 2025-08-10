@@ -807,6 +807,61 @@ class TaskController extends Controller
     }
 
     /**
+     * Mark all subtasks of a task as completed.  This endpoint is called via
+     * AJAX when the user moves a task into the done column and chooses to
+     * also complete all of its subtasks.  It will set the status of each
+     * descendant subtask to 'done' and update their completed_at timestamps.
+     * The request should provide a `task_id` parameter.  Responds with
+     * JSON indicating success.
+     */
+    public function completeSubtasks(): void
+    {
+        $this->requireLogin();
+        // Only allow via POST to prevent CSRF; client should use fetch()
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'error' => 'Invalid method']);
+            return;
+        }
+        $taskId = (int)($_POST['task_id'] ?? 0);
+        if ($taskId < 1) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'error' => 'Invalid task']);
+            return;
+        }
+        // Ensure the user has permission to edit this task
+        $taskModel = $this->loadModel('Task');
+        $task = $taskModel->findById($taskId);
+        if (!$task) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'error' => 'Task not found']);
+            return;
+        }
+        $projectId = (int)$task['project_id'];
+        if (!user_can('access_project', $projectId)) {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'error' => __('no_permission')]);
+            return;
+        }
+        // Mark subtasks as done
+        $taskModel->markSubtasksDone($taskId);
+        // Also ensure the parent task itself has completed_at set
+        $taskModel->update($taskId, [
+            'name' => $task['name'],
+            'description' => $task['description'] ?? '',
+            'status' => 'done',
+            'start_date' => $task['start_date'] ?? null,
+            'due_date' => $task['due_date'] ?? null,
+            'assigned_to' => $task['assigned_to'] ?? null,
+            'parent_id' => $task['parent_id'] ?? null,
+            'priority' => $task['priority'] ?? 'normal',
+            'tags' => $task['tags'] ?? null,
+        ]);
+        header('Content-Type: application/json');
+        echo json_encode(['success' => true]);
+    }
+
+    /**
      * Delete an attachment from a task.
      *
      * URL params: id = file id, task_id = id of the task to return to
@@ -1093,14 +1148,15 @@ class TaskController extends Controller
         $result = [];
         foreach ($notesForTask as $n) {
             $title = $n['title'] ?: (mb_substr(strip_tags($n['content']), 0, 30) . '…');
-            // Generate HTML for note content with linkified URLs.  This will be
-            // used by the client when displaying the note in a modal.  The
-            // linkify() helper escapes HTML and converts URLs to anchor tags.
-            $contentHtml = linkify($n['content']);
+            // Generate HTML for note content using markdown_to_html so that
+            // markdown syntax (bold, italic, lists) is rendered when viewing the note.
+            $contentHtml = markdown_to_html($n['content']);
             $result[] = [
-                'id'           => $n['id'],
+                'id'           => (int)$n['id'],
                 'title'        => $title,
                 'content_html' => $contentHtml,
+                'content_raw'  => $n['content'],
+                'user_id'      => (int)$n['user_id'],
             ];
         }
         header('Content-Type: application/json');

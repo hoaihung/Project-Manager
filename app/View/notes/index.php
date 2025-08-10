@@ -59,7 +59,10 @@ require_once __DIR__ . '/../../helpers.php';
                     // escape double quotes and other HTML entities for use
                     // inside a data attribute.  Note: ENT_QUOTES ensures both
                     // single and double quotes are encoded.
-                    $noteHtml = linkify($n['content']);
+                    // Render Markdown to HTML for viewing in the modal.  Use
+                    // the markdown_to_html helper to convert supported
+                    // markdown syntax (bold, italic, lists) into safe HTML.
+                    $noteHtml = markdown_to_html($n['content']);
                     $noteAttr = htmlspecialchars($noteHtml, ENT_QUOTES, 'UTF-8');
                     // Also prepare a short preview of the note for the table
                     // cell (strip tags and trim to 50 characters).
@@ -100,7 +103,19 @@ require_once __DIR__ . '/../../helpers.php';
                             <i class="fa-solid fa-eye"></i>
                         </a>
                         <?php if ($n['user_id'] == $_SESSION['user_id'] || ($_SESSION['user']['role_id'] ?? 0) === 1): ?>
-                            <a href="index.php?controller=note&action=edit&id=<?php echo e($n['id']); ?>" class="btn btn-outline-primary btn-sm" title="<?php echo e(__('edit')); ?>">
+                            <?php
+                                // Prepare raw content for editing.  We need the unescaped
+                                // note content for the editing modal.  Use ENT_QUOTES to
+                                // escape quotes within the attribute value.
+                                $rawContent = htmlspecialchars($n['content'], ENT_QUOTES, 'UTF-8');
+                                $rawTitle   = htmlspecialchars($n['title'], ENT_QUOTES, 'UTF-8');
+                            ?>
+                            <!-- The edit link is converted to a button that triggers a modal.  -->
+                            <a href="#" class="btn btn-outline-primary btn-sm" title="<?php echo e(__('edit')); ?>"
+                               data-note-edit
+                               data-id="<?php echo e($n['id']); ?>"
+                               data-title="<?php echo e($rawTitle); ?>"
+                               data-content="<?php echo e($rawContent); ?>">
                                 <i class="fa-solid fa-pencil"></i>
                             </a>
                             <a href="index.php?controller=note&action=delete&id=<?php echo e($n['id']); ?>" class="btn btn-outline-danger btn-sm" title="<?php echo e(__('delete')); ?>" onclick="return confirm('<?php echo e(__('confirm_delete_note') ?: 'Bạn có chắc muốn xóa ghi chú này?'); ?>');">
@@ -150,6 +165,96 @@ document.addEventListener('DOMContentLoaded', function() {
             const title = this.getAttribute('data-title');
             const content = this.getAttribute('data-content');
             openNoteDetailModal(title, content);
+        });
+    });
+});
+</script>
+
+<!-- Modal for editing note directly from the notes list -->
+<div id="noteEditModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); align-items:center; justify-content:center; z-index:1050;">
+    <div style="background:#fff; padding:1rem; border-radius:0.5rem; width:90%; max-width:600px; box-shadow:0 2px 8px rgba(0,0,0,0.2);">
+        <h4 style="margin-top:0;"><?php echo __('edit_note') ?: 'Sửa ghi chú'; ?></h4>
+        <form id="noteEditForm">
+            <div class="mb-2">
+                <label for="noteEditTitle" class="form-label small"><?php echo __('title') ?: 'Tiêu đề'; ?></label>
+                <input type="text" id="noteEditTitle" name="title" class="form-control form-control-sm">
+            </div>
+            <div class="mb-2">
+                <label for="noteEditContent" class="form-label small"><?php echo __('content') ?: 'Nội dung'; ?></label>
+                <!-- Simple formatting toolbar -->
+                <div class="btn-group mb-1" role="group">
+                    <button type="button" class="btn btn-light btn-sm" data-format="bold"><strong>B</strong></button>
+                    <button type="button" class="btn btn-light btn-sm" data-format="italic"><em>I</em></button>
+                    <button type="button" class="btn btn-light btn-sm" data-format="list">&bull; List</button>
+                </div>
+                <textarea id="noteEditContent" name="content" class="form-control form-control-sm" rows="6"></textarea>
+            </div>
+            <div class="text-end">
+                <button type="button" class="btn btn-secondary btn-sm" id="noteEditCancel"><?php echo __('cancel') ?: 'Hủy bỏ'; ?></button>
+                <button type="submit" class="btn btn-primary btn-sm"><?php echo __('save') ?: 'Lưu'; ?></button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Variables to track the note being edited on the notes index page
+let currentEditingNoteId = null;
+// Helper to open the edit modal with given id, title, content
+function openNoteEditModal(id, title, content) {
+    currentEditingNoteId = id;
+    document.getElementById('noteEditTitle').value = title || '';
+    document.getElementById('noteEditContent').value = content || '';
+    document.getElementById('noteEditModal').style.display = 'flex';
+}
+// Cancel button hides the modal
+document.getElementById('noteEditCancel').addEventListener('click', function() {
+    document.getElementById('noteEditModal').style.display = 'none';
+});
+// Formatting buttons wrap selected text with markdown syntax
+document.querySelectorAll('#noteEditModal [data-format]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        const format = this.getAttribute('data-format');
+        const textarea = document.getElementById('noteEditContent');
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const selected = textarea.value.slice(start, end);
+        let replacement = selected;
+        if (format === 'bold') {
+            replacement = '**' + selected + '**';
+        } else if (format === 'italic') {
+            replacement = '_' + selected + '_';
+        } else if (format === 'list') {
+            const lines = selected.split(/\n/);
+            replacement = lines.map(function(l) { return l ? '- ' + l : ''; }).join('\n');
+        }
+        textarea.setRangeText(replacement, start, end, 'end');
+        textarea.focus();
+    });
+});
+// Submit handler: send AJAX request to update the note and reload
+document.getElementById('noteEditForm').addEventListener('submit', function(ev) {
+    ev.preventDefault();
+    if (!currentEditingNoteId) return;
+    const title = document.getElementById('noteEditTitle').value;
+    const content = document.getElementById('noteEditContent').value;
+    fetch('index.php?controller=note&action=edit&id=' + currentEditingNoteId, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'title=' + encodeURIComponent(title) + '&content=' + encodeURIComponent(content)
+    }).then(function() {
+        location.reload();
+    });
+});
+// Attach click listeners to edit buttons on page load
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('[data-note-edit]').forEach(function(el) {
+        el.addEventListener('click', function(ev) {
+            ev.preventDefault();
+            const id = this.getAttribute('data-id');
+            const title = this.getAttribute('data-title') || '';
+            const content = this.getAttribute('data-content') || '';
+            openNoteEditModal(id, title, content);
         });
     });
 });

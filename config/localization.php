@@ -173,6 +173,20 @@ return [
         'done_due_analysis_title' => 'Thống kê công việc hoàn thành theo hạn',
         'done_due_analysis_hint' => 'Phân loại công việc đã hoàn thành dựa trên ngày đến hạn (so với hiện tại).',
 
+        // Time based statistics section in reports
+        'time_based_statistics' => 'Thống kê theo thời gian',
+        'time_based_statistics_hint' => 'Bạn có thể lọc theo tuần, tháng, năm, dự án và (nếu là quản trị) theo người dùng. Các số liệu hiển thị trong khoảng từ ngày bắt đầu tới ngày hiện tại hoặc theo khoảng tùy chỉnh.',
+        'tasks_in_progress' => 'Đang thực hiện',
+        'in_progress_hint' => 'Công việc chưa hoàn thành và vẫn còn trong thời hạn (chưa quá hạn).',
+
+        // Custom range label in reports
+        'custom_range' => 'Khoảng tùy chỉnh',
+
+        // Labels for current week/month/year used in reports
+        'week_current'  => 'Tuần hiện tại',
+        'month_current' => 'Tháng hiện tại',
+        'year_current'  => 'Năm hiện tại',
+
         // Buttons
         'edit_user' => 'Chỉnh sửa',
         'delete_user' => 'Xóa',
