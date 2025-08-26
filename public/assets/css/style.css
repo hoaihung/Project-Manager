@@ -238,6 +238,11 @@ table tbody tr:hover {
 /* Sidebar styles */
 .sidebar {
     /* styles defined inline in header; this class left for future overrides */
+    width:220px; 
+    min-width:180px; 
+    background-color: var(--surface); 
+    border-right:1px solid var(--border); 
+    padding:1rem 0.5rem;
 }
 .sidebar a {
     color: var(--text);
@@ -258,6 +263,7 @@ table tbody tr:hover {
     padding: 0 !important;
     overflow: hidden;
     border: none !important;
+    min-width: 0 !important;
     transition: width 0.3s ease;
 }
 

@@ -185,7 +185,7 @@
             $sidebarProjects = [];
         }
         ?>
-        <aside class="sidebar<?php echo (!empty($_SESSION['sidebar_collapsed']) ? ' collapsed' : ''); ?>" style="width:220px; min-width:180px; background-color: var(--surface); border-right:1px solid var(--border); padding:1rem 0.5rem;">
+        <aside class="sidebar<?php echo (!empty($_SESSION['sidebar_collapsed']) ? ' collapsed' : ''); ?>" style="">
             <div class="sidebar-heading" style="font-weight:600; margin-bottom:0.5rem; padding-left:0.75rem;">
                 <?php echo __('navigation') ?? 'Navigation'; ?>
             </div>
